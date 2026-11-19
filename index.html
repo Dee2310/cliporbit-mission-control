@@ -12,7 +12,7 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: #070b14;
+        background-color: #060a12;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         touch-action: none;
       }
@@ -250,7 +250,7 @@
 
         <!-- Top Left Studio Header -->
         <div class="studio-badge">
-          <h1>CLIPORBIT // STUDIO</h1>
+          <h1>CLIPORBIT // AI LABS</h1>
           <p>Pinch/Scroll to zoom • Tap bot to inspect</p>
         </div>
 
@@ -327,8 +327,9 @@
           const activeTab = ref('agents');
           const focusedAgentId = ref(null);
 
-          let scene, camera, renderer, animationFrameId;
+          let scene, camera, renderer, animationFrameId, particleField;
           const stationMeshes = {};
+          const stationAnimParts = {};
           const stationMeta = {};
           const agentMeshes = {};
           const agentParts = {};
@@ -400,7 +401,7 @@
               cameraRadius = 21;
             } else {
               focusedAgentId.value = id;
-              cameraRadius = 7.5; // Close-up portrait zoom on the sleek white AI bot
+              cameraRadius = 7.5;
             }
           };
 
@@ -415,8 +416,8 @@
 
           const initScene = () => {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x070b14);
-            scene.fog = new THREE.FogExp2(0x070b14, 0.018);
+            scene.background = new THREE.Color(0x060a12);
+            scene.fog = new THREE.FogExp2(0x060a12, 0.016);
 
             const width = canvasContainer.value.clientWidth;
             const height = canvasContainer.value.clientHeight;
@@ -427,56 +428,216 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             canvasContainer.value.appendChild(renderer.domElement);
 
-            // Studio three-point lighting to make the glossy white shells pop
-            scene.add(new THREE.AmbientLight(0xdbeafe, 0.75));
+            // Clean-Tech Studio Three-Point Lighting
+            scene.add(new THREE.AmbientLight(0xdbeafe, 0.8));
 
-            const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
-            keyLight.position.set(10, 22, 14);
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
+            keyLight.position.set(12, 24, 14);
             scene.add(keyLight);
 
-            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
-            rimLight.position.set(-14, 12, -14);
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.65);
+            rimLight.position.set(-14, 14, -14);
             scene.add(rimLight);
 
-            scene.add(new THREE.GridHelper(32, 32, 0x1e293b, 0x0f172a));
+            // Architectural Circular Lab Floor Deck
+            const deckFloor = new THREE.Mesh(
+              new THREE.CylinderGeometry(16.5, 17.2, 0.25, 48),
+              new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 0.28, metalness: 0.65 })
+            );
+            deckFloor.position.y = -0.13;
+            scene.add(deckFloor);
+
+            // Outer Glowing Perimeter Ring
+            const outerPerimeter = new THREE.Mesh(
+              new THREE.RingGeometry(16.3, 16.5, 64),
+              new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide })
+            );
+            outerPerimeter.rotation.x = Math.PI / 2;
+            outerPerimeter.position.y = 0.01;
+            scene.add(outerPerimeter);
+
+            // Inner Orbital Ring
+            const innerOrbit = new THREE.Mesh(
+              new THREE.RingGeometry(9.4, 9.52, 64),
+              new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide })
+            );
+            innerOrbit.rotation.x = Math.PI / 2;
+            innerOrbit.position.y = 0.01;
+            scene.add(innerOrbit);
+
+            // Subtle High-Tech Floor Grid
+            const grid = new THREE.GridHelper(30, 30, 0x1e293b, 0x0f172a);
+            grid.position.y = 0.005;
+            scene.add(grid);
+
+            // Floating Ambient Data Particles
+            const particleCount = 90;
+            const particleGeo = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            for (let i = 0; i < particleCount * 3; i += 3) {
+              positions[i] = (Math.random() - 0.5) * 28;
+              positions[i + 1] = 0.5 + Math.random() * 7;
+              positions[i + 2] = (Math.random() - 0.5) * 28;
+            }
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleField = new THREE.Points(
+              particleGeo,
+              new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.09, transparent: true, opacity: 0.5 })
+            );
+            scene.add(particleField);
           };
 
-          const createStation = (key, station) => {
-            const group = new THREE.Group();
-            const pad = new THREE.Mesh(
-              new THREE.CylinderGeometry(1.7, 2.0, 0.35, 24),
-              new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.6 })
-            );
-            pad.position.y = 0.18;
-            group.add(pad);
-
-            const rim = new THREE.Mesh(
-              new THREE.TorusGeometry(1.72, 0.04, 10, 32),
-              new THREE.MeshBasicMaterial({ color: station.color || 0x38bdf8 })
-            );
-            rim.rotation.x = Math.PI / 2;
-            rim.position.y = 0.36;
-            group.add(rim);
-
-            // Sleek floating holographic station pedestal
-            const pedestal = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.18, 0.32, 0.85, 16),
-              new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.2 })
-            );
-            pedestal.position.set(0, 0.78, 0);
-            group.add(pedestal);
-
-            const holoScreen = new THREE.Mesh(
-              new THREE.BoxGeometry(0.85, 0.5, 0.04),
+          // Build glowing energy conduit pathway from Center Hub (0,0) to each Lab
+          const createFloorConduit = (targetX, targetZ, color) => {
+            const dist = Math.hypot(targetX, targetZ);
+            if (dist < 0.5) return;
+            const conduit = new THREE.Mesh(
+              new THREE.PlaneGeometry(0.14, dist),
               new THREE.MeshBasicMaterial({
-                color: station.color || 0x38bdf8,
+                color: color || 0x38bdf8,
+                side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0.85
+                opacity: 0.45
               })
             );
-            holoScreen.position.set(0, 1.35, 0);
-            holoScreen.rotation.x = -0.25;
-            group.add(holoScreen);
+            conduit.rotation.x = Math.PI / 2;
+            conduit.rotation.z = -Math.atan2(targetX, targetZ);
+            conduit.position.set(targetX / 2, 0.015, targetZ / 2);
+            scene.add(conduit);
+          };
+
+          // Build custom futuristic AI Laboratory pods for each station
+          const createStation = (key, station) => {
+            const group = new THREE.Group();
+            const accent = station.color || '#38bdf8';
+
+            const ceramicWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.22, metalness: 0.2 });
+            const darkSlateMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.7 });
+            const holoGlassMat = new THREE.MeshBasicMaterial({
+              color: accent,
+              transparent: true,
+              opacity: 0.35,
+              side: THREE.DoubleSide
+            });
+            const neonMat = new THREE.MeshBasicMaterial({ color: accent });
+
+            // 1. Sleek Circular Base Platform + Glowing Ring
+            const basePad = new THREE.Mesh(new THREE.CylinderGeometry(1.85, 2.1, 0.24, 32), darkSlateMat);
+            basePad.position.y = 0.12;
+            group.add(basePad);
+
+            const whiteTrim = new THREE.Mesh(new THREE.TorusGeometry(1.86, 0.05, 12, 36), ceramicWhiteMat);
+            whiteTrim.rotation.x = Math.PI / 2;
+            whiteTrim.position.y = 0.24;
+            group.add(whiteTrim);
+
+            const neonRing = new THREE.Mesh(new THREE.TorusGeometry(1.94, 0.025, 10, 36), neonMat);
+            neonRing.rotation.x = Math.PI / 2;
+            neonRing.position.y = 0.2;
+            group.add(neonRing);
+
+            // Connect station to Director Hub with a floor conduit
+            createFloorConduit(station.x, station.z, accent);
+
+            // 2. Station-Specific Lab Equipment
+            const animRig = new THREE.Group();
+            group.add(animRig);
+
+            if (key === 'hub') {
+              // Central Director Core: Floating crystal core + dual rotating orbital rings
+              const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), neonMat);
+              core.position.y = 1.45;
+              animRig.add(core);
+
+              const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.025, 10, 32), ceramicWhiteMat);
+              ring1.position.y = 1.45;
+              ring1.rotation.x = 0.6;
+              animRig.add(ring1);
+
+              const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.02, 10, 32), neonMat);
+              ring2.position.y = 1.45;
+              ring2.rotation.y = 0.8;
+              animRig.add(ring2);
+
+              stationAnimParts[key] = { type: 'hub', core, ring1, ring2 };
+            } else if (key === 'hunter') {
+              // Hunter & Scout Bay: Ceramic pedestal + Radar Dish + Scanning Wave
+              const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.36, 0.9, 16), ceramicWhiteMat);
+              pillar.position.y = 0.68;
+              group.add(pillar);
+
+              const dishGroup = new THREE.Group();
+              dishGroup.position.set(0, 1.35, -0.2);
+              const dish = new THREE.Mesh(
+                new THREE.SphereGeometry(0.65, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.4),
+                ceramicWhiteMat
+              );
+              dish.rotation.x = Math.PI * 0.72;
+              const dishTip = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 8), neonMat);
+              dishTip.position.set(0, 0.15, 0.25);
+              dishTip.rotation.x = 0.7;
+              dishGroup.add(dish, dishTip);
+              animRig.add(dishGroup);
+
+              stationAnimParts[key] = { type: 'hunter', dishGroup };
+            } else if (key === 'editor') {
+              // Editor Render Studio: Curved 9:16 Vertical Multi-Screen Array
+              const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.65, 0.45), ceramicWhiteMat);
+              desk.position.set(0, 0.55, -0.35);
+              group.add(desk);
+
+              // Three 9:16 vertical holographic screens (center + angled wings)
+              const centerScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.95), holoGlassMat);
+              centerScreen.position.set(0, 1.45, -0.35);
+              const centerBorder = new THREE.LineSegments(
+                new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.55, 0.95)),
+                new THREE.LineBasicMaterial({ color: accent })
+              );
+              centerBorder.position.copy(centerScreen.position);
+
+              const leftScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.8), holoGlassMat);
+              leftScreen.position.set(-0.62, 1.4, -0.22);
+              leftScreen.rotation.y = 0.42;
+
+              const rightScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.8), holoGlassMat);
+              rightScreen.position.set(0.62, 1.4, -0.22);
+              rightScreen.rotation.y = -0.42;
+
+              group.add(centerScreen, centerBorder, leftScreen, rightScreen);
+              stationAnimParts[key] = { type: 'editor', centerScreen };
+            } else if (key === 'analyst') {
+              // Analyst & QA Lab: Holographic 3D Bar Chart Console
+              const table = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.55, 0.65, 20), ceramicWhiteMat);
+              table.position.set(0, 0.55, -0.25);
+              group.add(table);
+
+              const barsGroup = new THREE.Group();
+              barsGroup.position.set(0, 1.0, -0.25);
+              const heights = [0.35, 0.65, 0.48, 0.85];
+              heights.forEach((h, idx) => {
+                const bar = new THREE.Mesh(new THREE.BoxGeometry(0.14, h, 0.14), neonMat);
+                bar.position.set((idx - 1.5) * 0.24, h / 2, 0);
+                barsGroup.add(bar);
+              });
+              animRig.add(barsGroup);
+              stationAnimParts[key] = { type: 'analyst', barsGroup };
+            } else if (key === 'publisher') {
+              // Shorts Broadcast Tower: Tall white spire + pulsing signal rings
+              const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.5, 0.9, 16), ceramicWhiteMat);
+              towerBase.position.set(0, 0.68, -0.25);
+              const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.14, 1.15, 12), darkSlateMat);
+              spire.position.set(0, 1.65, -0.25);
+              const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 14), neonMat);
+              beacon.position.set(0, 2.28, -0.25);
+              group.add(towerBase, spire, beacon);
+
+              const pulseRing = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.02, 8, 24), neonMat);
+              pulseRing.rotation.x = Math.PI / 2;
+              pulseRing.position.set(0, 2.1, -0.25);
+              animRig.add(pulseRing);
+
+              stationAnimParts[key] = { type: 'publisher', pulseRing, beacon };
+            }
 
             group.position.set(station.x, 0, station.z);
             scene.add(group);
@@ -484,7 +645,6 @@
             stationMeta[key] = station;
           };
 
-          // Generate a crisp chest badge texture ("HU", "ED", "PU", etc.)
           const createChestBadgeTexture = (initials, accentColor) => {
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -497,44 +657,36 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(initials, 64, 68);
-            const tex = new THREE.CanvasTexture(canvas);
-            return tex;
+            return new THREE.CanvasTexture(canvas);
           };
 
-          // Build the sleek white hovering AI assistant robot (matching reference image)
+          // Build sleek white hovering AI assistant robot
           const getOrCreateAgent = (agentData) => {
             const agentId = agentData.id;
             if (!agentMeshes[agentId]) {
               const root = new THREE.Group();
               const accentColor = agentData.color || '#38bdf8';
 
-              // Glossy Ceramic White Material
               const whiteShellMat = new THREE.MeshStandardMaterial({
                 color: 0xffffff,
                 roughness: 0.18,
                 metalness: 0.12
               });
-
-              // Dark Glossy Visor & Ear Trim
               const darkVisorMat = new THREE.MeshStandardMaterial({
                 color: 0x090d16,
                 roughness: 0.12,
                 metalness: 0.7
               });
-
               const metallicTrimMat = new THREE.MeshStandardMaterial({
                 color: 0x94a3b8,
                 roughness: 0.3,
                 metalness: 0.8
               });
-
               const eyeGlowMat = new THREE.MeshBasicMaterial({ color: accentColor });
 
-              // Container for the floating body (bobs up and down smoothly)
               const bodyFloatGroup = new THREE.Group();
               root.add(bodyFloatGroup);
 
-              // 1. Concentric Hover Energy Rings underneath
               const innerRing = new THREE.Mesh(
                 new THREE.RingGeometry(0.18, 0.28, 28),
                 new THREE.MeshBasicMaterial({ color: accentColor, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
@@ -551,14 +703,12 @@
               outerRing.position.y = 0.06;
               root.add(outerRing);
 
-              // 2. Tapered Egg/Teardrop Hovering Torso
               const torsoGeo = new THREE.SphereGeometry(0.36, 24, 24);
               torsoGeo.scale(1.0, 1.25, 0.88);
               const torso = new THREE.Mesh(torsoGeo, whiteShellMat);
               torso.position.y = 0.68;
               bodyFloatGroup.add(torso);
 
-              // Chest Badge Plate (shows agent initials like "ED", "HU", "PU")
               const initials = (agentData.name || 'AI').slice(0, 2).toUpperCase();
               const badgePlate = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.28, 0.28),
@@ -567,29 +717,24 @@
               badgePlate.position.set(0, 0.74, 0.32);
               bodyFloatGroup.add(badgePlate);
 
-              // Neck Collar Ring
               const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.12, 16), darkVisorMat);
               neck.position.y = 1.08;
               bodyFloatGroup.add(neck);
 
-              // 3. Large Rounded AI Helmet Head
               const headGroup = new THREE.Group();
               headGroup.position.y = 1.44;
               bodyFloatGroup.add(headGroup);
 
               const headShellGeo = new THREE.SphereGeometry(0.46, 28, 28);
               headShellGeo.scale(1.18, 0.92, 0.96);
-              const headShell = new THREE.Mesh(headShellGeo, whiteShellMat);
-              headGroup.add(headShell);
+              headGroup.add(new THREE.Mesh(headShellGeo, whiteShellMat));
 
-              // Dark Rounded Face Screen (Protruding slightly forward)
               const faceScreenGeo = new THREE.SphereGeometry(0.39, 24, 24);
               faceScreenGeo.scale(1.14, 0.82, 0.65);
               const faceScreen = new THREE.Mesh(faceScreenGeo, darkVisorMat);
               faceScreen.position.set(0, -0.01, 0.22);
               headGroup.add(faceScreen);
 
-              // Glowing Circular Eyes + Subtle Outer Halo
               const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 16), eyeGlowMat);
               leftEye.scale.set(1, 1.15, 0.5);
               leftEye.position.set(-0.15, 0.01, 0.46);
@@ -599,7 +744,6 @@
               rightEye.position.set(0.15, 0.01, 0.46);
               headGroup.add(leftEye, rightEye);
 
-              // Rounded Side Ear Caps (Headphone look from reference)
               const earGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 16);
               earGeo.rotateZ(Math.PI / 2);
               const leftEar = new THREE.Mesh(earGeo, darkVisorMat);
@@ -608,14 +752,12 @@
               rightEar.position.set(0.54, 0, 0);
               headGroup.add(leftEar, rightEar);
 
-              // Top Antenna Stem + Glowing Ball Tip
               const antennaStem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 0.18, 10), metallicTrimMat);
               antennaStem.position.set(0, 0.48, 0);
               const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 14), eyeGlowMat);
               antennaTip.position.set(0, 0.59, 0);
               headGroup.add(antennaStem, antennaTip);
 
-              // 4. Curved Stubby Floating Arms (Tucked cleanly at sides)
               const leftArmPivot = new THREE.Group();
               leftArmPivot.position.set(-0.42, 0.88, 0);
               const leftArmGeo = new THREE.SphereGeometry(0.11, 16, 16);
@@ -636,7 +778,6 @@
               rightArmPivot.add(rightArmMesh);
               bodyFloatGroup.add(rightArmPivot);
 
-              // 5. Orbiting Holographic UI Widgets (Appear when actively working!)
               const holoOrbitGroup = new THREE.Group();
               holoOrbitGroup.position.y = 1.15;
               holoOrbitGroup.visible = false;
@@ -680,7 +821,7 @@
 
             for (const [key, mesh] of Object.entries(stationMeshes)) {
               const pos = mesh.position.clone();
-              pos.y += 2.0;
+              pos.y += 2.35;
               pos.project(camera);
               if (pos.z < 1) {
                 labels.push({
@@ -729,6 +870,29 @@
             camera.position.y = camHeight;
             camera.lookAt(lookAtTarget);
 
+            // Subtle ambient particle drift
+            if (particleField) {
+              particleField.rotation.y = now * 0.00012;
+            }
+
+            // Animate Station Lab Equipment
+            for (const part of Object.values(stationAnimParts)) {
+              if (part.type === 'hub') {
+                part.core.rotation.y = now * 0.002;
+                part.ring1.rotation.z = now * 0.0015;
+                part.ring2.rotation.x = -now * 0.0012;
+              } else if (part.type === 'hunter') {
+                part.dishGroup.rotation.y = Math.sin(now * 0.0012) * 0.8;
+              } else if (part.type === 'analyst') {
+                part.barsGroup.rotation.y = now * 0.001;
+              } else if (part.type === 'publisher') {
+                const cycle = (now * 0.0012) % 1;
+                part.pulseRing.scale.setScalar(0.5 + cycle * 1.8);
+                part.pulseRing.position.y = 1.6 + cycle * 0.75;
+              }
+            }
+
+            // Animate Robots
             for (const id in agentMeshes) {
               const robot = agentMeshes[id];
               const parts = agentParts[id];
@@ -742,19 +906,16 @@
               robot.position.x += dx * 0.055;
               robot.position.z += dz * 0.055;
 
-              // Smoothly face movement direction
               if (dist > 0.15) {
                 robot.rotation.y = Math.atan2(dx, dz);
-                parts.body.rotation.x = 0.16; // Lean forward while gliding
+                parts.body.rotation.x = 0.16;
               } else {
                 parts.body.rotation.x = 0;
               }
 
-              // Pulse outer hover energy ring
               parts.outerRing.scale.setScalar(1 + Math.sin(now * 0.006) * 0.08);
 
               if (state === 'working' && dist <= 0.6) {
-                // Active AI Processing Mode: Orbiting holographic cards + excited gestures
                 parts.holoOrbit.visible = true;
                 parts.holoOrbit.rotation.y = now * 0.003;
                 parts.body.position.y = Math.sin(now * 0.01) * 0.07;
@@ -763,7 +924,6 @@
                 parts.head.rotation.y = Math.sin(now * 0.008) * 0.22;
                 parts.antennaTip.scale.setScalar(1 + Math.sin(now * 0.025) * 0.35);
               } else if (dist > 0.15) {
-                // Gliding to station
                 parts.holoOrbit.visible = false;
                 parts.body.position.y = Math.sin(now * 0.012) * 0.06;
                 parts.leftArm.rotation.x = 0.25;
@@ -771,7 +931,6 @@
                 parts.head.rotation.y = 0;
                 parts.antennaTip.scale.setScalar(1);
               } else {
-                // Gentle Hovering Idle
                 parts.holoOrbit.visible = false;
                 parts.body.position.y = Math.sin(now * 0.0035) * 0.06;
                 parts.leftArm.rotation.x = Math.sin(now * 0.0035) * 0.08;
