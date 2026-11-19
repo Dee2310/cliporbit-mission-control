@@ -12,7 +12,7 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: #090d16;
+        background-color: #070b14;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         touch-action: none;
       }
@@ -49,7 +49,6 @@
         color: #94a3b8;
         margin: 0;
       }
-      /* Zoom & Reset Floating Controls for Easy Thumb Reach */
       .zoom-controls {
         position: absolute;
         top: 14px;
@@ -82,26 +81,25 @@
         position: absolute;
         top: 0;
         left: 0;
-        background: rgba(9, 13, 22, 0.85);
+        background: rgba(9, 13, 22, 0.88);
         border: 1px solid #38bdf8;
         color: #f1f5f9;
         font-size: 9px;
         font-weight: 600;
-        padding: 2px 6px;
-        border-radius: 4px;
+        padding: 2px 7px;
+        border-radius: 10px;
         pointer-events: none;
         white-space: nowrap;
         display: flex;
         align-items: center;
         gap: 4px;
-        margin-left: -40px;
+        margin-left: -42px;
       }
       .floating-label .dot {
         width: 5px;
         height: 5px;
         border-radius: 50%;
       }
-      /* Bottom Mobile Dock: Agent Roster + Progress + Logs */
       .hud-overlay {
         position: absolute;
         bottom: 12px;
@@ -147,7 +145,6 @@
       .status-badge.live {
         color: #4ade80;
       }
-      /* Agent Progress Cards */
       .agent-list {
         display: flex;
         flex-direction: column;
@@ -346,7 +343,7 @@
           let cameraRadius = 21;
           const lookAtTarget = new THREE.Vector3(0, 0, 0);
 
-          const clampRadius = (r) => Math.max(6, Math.min(36, r));
+          const clampRadius = (r) => Math.max(5.5, Math.min(36, r));
 
           const adjustZoom = (delta) => {
             cameraRadius = clampRadius(cameraRadius + delta);
@@ -403,7 +400,7 @@
               cameraRadius = 21;
             } else {
               focusedAgentId.value = id;
-              cameraRadius = 9.5; // Zoom in close to inspect the robot!
+              cameraRadius = 7.5; // Close-up portrait zoom on the sleek white AI bot
             }
           };
 
@@ -418,7 +415,8 @@
 
           const initScene = () => {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x090d16);
+            scene.background = new THREE.Color(0x070b14);
+            scene.fog = new THREE.FogExp2(0x070b14, 0.018);
 
             const width = canvasContainer.value.clientWidth;
             const height = canvasContainer.value.clientHeight;
@@ -429,10 +427,16 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             canvasContainer.value.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-            dirLight.position.set(12, 24, 12);
-            scene.add(dirLight);
+            // Studio three-point lighting to make the glossy white shells pop
+            scene.add(new THREE.AmbientLight(0xdbeafe, 0.75));
+
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            keyLight.position.set(10, 22, 14);
+            scene.add(keyLight);
+
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
+            rimLight.position.set(-14, 12, -14);
+            scene.add(rimLight);
 
             scene.add(new THREE.GridHelper(32, 32, 0x1e293b, 0x0f172a));
           };
@@ -440,33 +444,39 @@
           const createStation = (key, station) => {
             const group = new THREE.Group();
             const pad = new THREE.Mesh(
-              new THREE.CylinderGeometry(1.7, 2.0, 0.4, 6),
-              new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.5 })
+              new THREE.CylinderGeometry(1.7, 2.0, 0.35, 24),
+              new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.6 })
             );
-            pad.position.y = 0.2;
+            pad.position.y = 0.18;
             group.add(pad);
 
             const rim = new THREE.Mesh(
-              new THREE.CylinderGeometry(1.75, 1.75, 0.08, 6),
+              new THREE.TorusGeometry(1.72, 0.04, 10, 32),
               new THREE.MeshBasicMaterial({ color: station.color || 0x38bdf8 })
             );
-            rim.position.y = 0.41;
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = 0.36;
             group.add(rim);
 
-            const consoleBox = new THREE.Mesh(
-              new THREE.BoxGeometry(0.7, 0.9, 0.5),
-              new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.4, roughness: 0.3 })
+            // Sleek floating holographic station pedestal
+            const pedestal = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.18, 0.32, 0.85, 16),
+              new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.2 })
             );
-            consoleBox.position.set(0, 0.85, 0);
-            group.add(consoleBox);
+            pedestal.position.set(0, 0.78, 0);
+            group.add(pedestal);
 
-            const screen = new THREE.Mesh(
-              new THREE.BoxGeometry(0.55, 0.35, 0.05),
-              new THREE.MeshBasicMaterial({ color: station.color || 0x38bdf8 })
+            const holoScreen = new THREE.Mesh(
+              new THREE.BoxGeometry(0.85, 0.5, 0.04),
+              new THREE.MeshBasicMaterial({
+                color: station.color || 0x38bdf8,
+                transparent: true,
+                opacity: 0.85
+              })
             );
-            screen.position.set(0, 1.1, 0.26);
-            screen.rotation.x = -0.25;
-            group.add(screen);
+            holoScreen.position.set(0, 1.35, 0);
+            holoScreen.rotation.x = -0.25;
+            group.add(holoScreen);
 
             group.position.set(station.x, 0, station.z);
             scene.add(group);
@@ -474,74 +484,188 @@
             stationMeta[key] = station;
           };
 
+          // Generate a crisp chest badge texture ("HU", "ED", "PU", etc.)
+          const createChestBadgeTexture = (initials, accentColor) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = accentColor;
+            ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(initials, 64, 68);
+            const tex = new THREE.CanvasTexture(canvas);
+            return tex;
+          };
+
+          // Build the sleek white hovering AI assistant robot (matching reference image)
           const getOrCreateAgent = (agentData) => {
             const agentId = agentData.id;
             if (!agentMeshes[agentId]) {
               const root = new THREE.Group();
-              const hexColor = agentData.color || '#38bdf8';
+              const accentColor = agentData.color || '#38bdf8';
 
-              const armorMat = new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.35, metalness: 0.3 });
-              const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.6 });
-              const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+              // Glossy Ceramic White Material
+              const whiteShellMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.18,
+                metalness: 0.12
+              });
 
-              // Base & Thruster Ring
-              const base = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.22, 12), darkMetalMat);
-              base.position.y = 0.16;
-              root.add(base);
+              // Dark Glossy Visor & Ear Trim
+              const darkVisorMat = new THREE.MeshStandardMaterial({
+                color: 0x090d16,
+                roughness: 0.12,
+                metalness: 0.7
+              });
 
-              const ring = new THREE.Mesh(
-                new THREE.RingGeometry(0.36, 0.48, 20),
-                new THREE.MeshBasicMaterial({ color: hexColor, side: THREE.DoubleSide })
+              const metallicTrimMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                roughness: 0.3,
+                metalness: 0.8
+              });
+
+              const eyeGlowMat = new THREE.MeshBasicMaterial({ color: accentColor });
+
+              // Container for the floating body (bobs up and down smoothly)
+              const bodyFloatGroup = new THREE.Group();
+              root.add(bodyFloatGroup);
+
+              // 1. Concentric Hover Energy Rings underneath
+              const innerRing = new THREE.Mesh(
+                new THREE.RingGeometry(0.18, 0.28, 28),
+                new THREE.MeshBasicMaterial({ color: accentColor, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
               );
-              ring.rotation.x = Math.PI / 2;
-              ring.position.y = 0.04;
-              root.add(ring);
+              innerRing.rotation.x = Math.PI / 2;
+              innerRing.position.y = 0.08;
+              root.add(innerRing);
 
-              // Torso
-              const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.55, 0.4), armorMat);
-              torso.position.y = 0.58;
-              root.add(torso);
+              const outerRing = new THREE.Mesh(
+                new THREE.RingGeometry(0.38, 0.45, 32),
+                new THREE.MeshBasicMaterial({ color: accentColor, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+              );
+              outerRing.rotation.x = Math.PI / 2;
+              outerRing.position.y = 0.06;
+              root.add(outerRing);
 
-              // Head + Visor + Eyes + Antenna
+              // 2. Tapered Egg/Teardrop Hovering Torso
+              const torsoGeo = new THREE.SphereGeometry(0.36, 24, 24);
+              torsoGeo.scale(1.0, 1.25, 0.88);
+              const torso = new THREE.Mesh(torsoGeo, whiteShellMat);
+              torso.position.y = 0.68;
+              bodyFloatGroup.add(torso);
+
+              // Chest Badge Plate (shows agent initials like "ED", "HU", "PU")
+              const initials = (agentData.name || 'AI').slice(0, 2).toUpperCase();
+              const badgePlate = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.28, 0.28),
+                new THREE.MeshBasicMaterial({ map: createChestBadgeTexture(initials, accentColor) })
+              );
+              badgePlate.position.set(0, 0.74, 0.32);
+              bodyFloatGroup.add(badgePlate);
+
+              // Neck Collar Ring
+              const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.12, 16), darkVisorMat);
+              neck.position.y = 1.08;
+              bodyFloatGroup.add(neck);
+
+              // 3. Large Rounded AI Helmet Head
               const headGroup = new THREE.Group();
-              headGroup.position.y = 1.05;
-              headGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.36, 0.38), armorMat));
+              headGroup.position.y = 1.44;
+              bodyFloatGroup.add(headGroup);
 
-              const visor = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.16, 0.05), darkMetalMat);
-              visor.position.set(0, 0.02, 0.19);
-              headGroup.add(visor);
+              const headShellGeo = new THREE.SphereGeometry(0.46, 28, 28);
+              headShellGeo.scale(1.18, 0.92, 0.96);
+              const headShell = new THREE.Mesh(headShellGeo, whiteShellMat);
+              headGroup.add(headShell);
 
-              const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.02), glowMat);
-              leftEye.position.set(-0.09, 0.02, 0.22);
-              const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.02), glowMat);
-              rightEye.position.set(0.09, 0.02, 0.22);
+              // Dark Rounded Face Screen (Protruding slightly forward)
+              const faceScreenGeo = new THREE.SphereGeometry(0.39, 24, 24);
+              faceScreenGeo.scale(1.14, 0.82, 0.65);
+              const faceScreen = new THREE.Mesh(faceScreenGeo, darkVisorMat);
+              faceScreen.position.set(0, -0.01, 0.22);
+              headGroup.add(faceScreen);
+
+              // Glowing Circular Eyes + Subtle Outer Halo
+              const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 16), eyeGlowMat);
+              leftEye.scale.set(1, 1.15, 0.5);
+              leftEye.position.set(-0.15, 0.01, 0.46);
+
+              const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 16), eyeGlowMat);
+              rightEye.scale.set(1, 1.15, 0.5);
+              rightEye.position.set(0.15, 0.01, 0.46);
               headGroup.add(leftEye, rightEye);
 
-              const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 6), darkMetalMat);
-              stalk.position.set(0, 0.28, 0);
-              const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshBasicMaterial({ color: hexColor }));
-              beacon.position.set(0, 0.4, 0);
-              headGroup.add(stalk, beacon);
-              root.add(headGroup);
+              // Rounded Side Ear Caps (Headphone look from reference)
+              const earGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 16);
+              earGeo.rotateZ(Math.PI / 2);
+              const leftEar = new THREE.Mesh(earGeo, darkVisorMat);
+              leftEar.position.set(-0.54, 0, 0);
+              const rightEar = new THREE.Mesh(earGeo, darkVisorMat);
+              rightEar.position.set(0.54, 0, 0);
+              headGroup.add(leftEar, rightEar);
 
-              // Articulated Arms
+              // Top Antenna Stem + Glowing Ball Tip
+              const antennaStem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 0.18, 10), metallicTrimMat);
+              antennaStem.position.set(0, 0.48, 0);
+              const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 14), eyeGlowMat);
+              antennaTip.position.set(0, 0.59, 0);
+              headGroup.add(antennaStem, antennaTip);
+
+              // 4. Curved Stubby Floating Arms (Tucked cleanly at sides)
               const leftArmPivot = new THREE.Group();
-              leftArmPivot.position.set(-0.35, 0.78, 0);
-              const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.42, 0.14), darkMetalMat);
-              leftArm.position.y = -0.16;
-              leftArmPivot.add(leftArm);
-              root.add(leftArmPivot);
+              leftArmPivot.position.set(-0.42, 0.88, 0);
+              const leftArmGeo = new THREE.SphereGeometry(0.11, 16, 16);
+              leftArmGeo.scale(0.85, 2.1, 0.9);
+              const leftArmMesh = new THREE.Mesh(leftArmGeo, whiteShellMat);
+              leftArmMesh.position.set(0, -0.14, 0);
+              leftArmMesh.rotation.z = 0.18;
+              leftArmPivot.add(leftArmMesh);
+              bodyFloatGroup.add(leftArmPivot);
 
               const rightArmPivot = new THREE.Group();
-              rightArmPivot.position.set(0.35, 0.78, 0);
-              const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.42, 0.14), darkMetalMat);
-              rightArm.position.y = -0.16;
-              rightArmPivot.add(rightArm);
-              root.add(rightArmPivot);
+              rightArmPivot.position.set(0.42, 0.88, 0);
+              const rightArmGeo = new THREE.SphereGeometry(0.11, 16, 16);
+              rightArmGeo.scale(0.85, 2.1, 0.9);
+              const rightArmMesh = new THREE.Mesh(rightArmGeo, whiteShellMat);
+              rightArmMesh.position.set(0, -0.14, 0);
+              rightArmMesh.rotation.z = -0.18;
+              rightArmPivot.add(rightArmMesh);
+              bodyFloatGroup.add(rightArmPivot);
+
+              // 5. Orbiting Holographic UI Widgets (Appear when actively working!)
+              const holoOrbitGroup = new THREE.Group();
+              holoOrbitGroup.position.y = 1.15;
+              holoOrbitGroup.visible = false;
+              const cardMat = new THREE.MeshBasicMaterial({
+                color: accentColor,
+                transparent: true,
+                opacity: 0.55,
+                side: THREE.DoubleSide
+              });
+              for (let i = 0; i < 3; i++) {
+                const angle = (i * Math.PI * 2) / 3;
+                const card = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), cardMat);
+                card.position.set(Math.cos(angle) * 0.88, (i - 1) * 0.15, Math.sin(angle) * 0.88);
+                card.lookAt(0, 0, 0);
+                holoOrbitGroup.add(card);
+              }
+              bodyFloatGroup.add(holoOrbitGroup);
 
               scene.add(root);
               agentMeshes[agentId] = root;
-              agentParts[agentId] = { head: headGroup, leftArm: leftArmPivot, rightArm: rightArmPivot, beacon };
+              agentParts[agentId] = {
+                body: bodyFloatGroup,
+                head: headGroup,
+                leftArm: leftArmPivot,
+                rightArm: rightArmPivot,
+                antennaTip,
+                outerRing,
+                holoOrbit: holoOrbitGroup
+              };
               agentTargets[agentId] = new THREE.Vector3(0, 0, 0);
               agentStates[agentId] = 'idle';
             }
@@ -554,10 +678,9 @@
             const height = canvasContainer.value.clientHeight;
             const labels = [];
 
-            // Station Labels
             for (const [key, mesh] of Object.entries(stationMeshes)) {
               const pos = mesh.position.clone();
-              pos.y += 1.9;
+              pos.y += 2.0;
               pos.project(camera);
               if (pos.z < 1) {
                 labels.push({
@@ -570,12 +693,11 @@
               }
             }
 
-            // Floating Progress Tags above Working Robots
             for (const [id, mesh] of Object.entries(agentMeshes)) {
               const ag = agents.value[id];
               if (!ag) continue;
               const pos = mesh.position.clone();
-              pos.y += 1.85;
+              pos.y += 2.3;
               pos.project(camera);
               if (pos.z < 1) {
                 labels.push({
@@ -594,15 +716,14 @@
             animationFrameId = requestAnimationFrame(animate);
             const now = Date.now();
 
-            // Smoothly follow selected robot or return to studio center
-            const desiredLookAt = new THREE.Vector3(0, 0.5, 0);
+            const desiredLookAt = new THREE.Vector3(0, 0.8, 0);
             if (focusedAgentId.value && agentMeshes[focusedAgentId.value]) {
               const botPos = agentMeshes[focusedAgentId.value].position;
-              desiredLookAt.set(botPos.x, 0.8, botPos.z);
+              desiredLookAt.set(botPos.x, 1.15, botPos.z);
             }
             lookAtTarget.lerp(desiredLookAt, 0.08);
 
-            const camHeight = cameraRadius * 0.68;
+            const camHeight = cameraRadius * 0.62;
             camera.position.x = lookAtTarget.x + Math.sin(cameraAngle) * cameraRadius;
             camera.position.z = lookAtTarget.z + Math.cos(cameraAngle) * cameraRadius;
             camera.position.y = camHeight;
@@ -618,34 +739,45 @@
               const dz = target.z - robot.position.z;
               const dist = Math.hypot(dx, dz);
 
-              robot.position.x += dx * 0.05;
-              robot.position.z += dz * 0.05;
+              robot.position.x += dx * 0.055;
+              robot.position.z += dz * 0.055;
 
+              // Smoothly face movement direction
               if (dist > 0.15) {
                 robot.rotation.y = Math.atan2(dx, dz);
-                robot.rotation.x = 0.12;
+                parts.body.rotation.x = 0.16; // Lean forward while gliding
               } else {
-                robot.rotation.x = 0;
+                parts.body.rotation.x = 0;
               }
 
+              // Pulse outer hover energy ring
+              parts.outerRing.scale.setScalar(1 + Math.sin(now * 0.006) * 0.08);
+
               if (state === 'working' && dist <= 0.6) {
-                robot.position.y = Math.abs(Math.sin(now * 0.015)) * 0.08;
-                parts.leftArm.rotation.x = -1.1 + Math.sin(now * 0.025) * 0.45;
-                parts.rightArm.rotation.x = -1.1 + Math.cos(now * 0.025) * 0.45;
-                parts.head.rotation.y = Math.sin(now * 0.01) * 0.25;
-                parts.beacon.scale.setScalar(1 + Math.sin(now * 0.03) * 0.4);
+                // Active AI Processing Mode: Orbiting holographic cards + excited gestures
+                parts.holoOrbit.visible = true;
+                parts.holoOrbit.rotation.y = now * 0.003;
+                parts.body.position.y = Math.sin(now * 0.01) * 0.07;
+                parts.leftArm.rotation.x = -0.8 + Math.sin(now * 0.02) * 0.35;
+                parts.rightArm.rotation.x = -0.8 + Math.cos(now * 0.02) * 0.35;
+                parts.head.rotation.y = Math.sin(now * 0.008) * 0.22;
+                parts.antennaTip.scale.setScalar(1 + Math.sin(now * 0.025) * 0.35);
               } else if (dist > 0.15) {
-                robot.position.y = Math.abs(Math.sin(now * 0.012)) * 0.08;
-                parts.leftArm.rotation.x = Math.sin(now * 0.015) * 0.5;
-                parts.rightArm.rotation.x = -Math.sin(now * 0.015) * 0.5;
+                // Gliding to station
+                parts.holoOrbit.visible = false;
+                parts.body.position.y = Math.sin(now * 0.012) * 0.06;
+                parts.leftArm.rotation.x = 0.25;
+                parts.rightArm.rotation.x = 0.25;
                 parts.head.rotation.y = 0;
-                parts.beacon.scale.setScalar(1);
+                parts.antennaTip.scale.setScalar(1);
               } else {
-                robot.position.y = Math.sin(now * 0.004) * 0.04;
-                parts.leftArm.rotation.x = Math.sin(now * 0.004) * 0.08;
-                parts.rightArm.rotation.x = -Math.sin(now * 0.004) * 0.08;
-                parts.head.rotation.y = Math.sin(now * 0.002) * 0.15;
-                parts.beacon.scale.setScalar(1);
+                // Gentle Hovering Idle
+                parts.holoOrbit.visible = false;
+                parts.body.position.y = Math.sin(now * 0.0035) * 0.06;
+                parts.leftArm.rotation.x = Math.sin(now * 0.0035) * 0.08;
+                parts.rightArm.rotation.x = Math.sin(now * 0.0035) * 0.08;
+                parts.head.rotation.y = Math.sin(now * 0.0018) * 0.14;
+                parts.antennaTip.scale.setScalar(1);
               }
             }
 
@@ -682,7 +814,7 @@
                 agentStates[ag.id] = ag.state;
 
                 if (data.target) {
-                  agentTargets[ag.id].set(data.target.x, 0, data.target.z + 1.1);
+                  agentTargets[ag.id].set(data.target.x, 0, data.target.z + 1.15);
                 }
 
                 logs.value.unshift({
