@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>ClipOrbit Mission Control</title>
+    <title>ClipOrbit OS // Mission Control</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -12,11 +12,12 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: #060a12;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #070b14;
+        color: #f8fafc;
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
         touch-action: none;
       }
-      .visualizer-container {
+      .app-shell {
         position: relative;
         width: 100vw;
         height: 100vh;
@@ -26,43 +27,104 @@
         width: 100%;
         height: 100%;
       }
-      .studio-badge {
+
+      /* Top Glass Navigation Bar (Hermes-inspired sleek header) */
+      .top-navbar {
         position: absolute;
-        top: 14px;
-        left: 14px;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(139, 92, 246, 0.35);
-        border-radius: 10px;
-        padding: 8px 12px;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        height: 46px;
+        background: rgba(13, 19, 33, 0.88);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 12px;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 30;
+      }
+      .brand-cluster {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand-logo {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, #38bdf8, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 12px;
+        color: #fff;
+      }
+      .brand-title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
         color: #f8fafc;
-        pointer-events: none;
       }
-      .studio-badge h1 {
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        color: #a78bfa;
-        margin: 0 0 2px 0;
+      .mode-switcher {
+        display: flex;
+        background: rgba(15, 23, 42, 0.9);
+        padding: 3px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
       }
-      .studio-badge p {
-        font-size: 9px;
+      .mode-btn {
+        background: transparent;
+        border: none;
         color: #94a3b8;
-        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
       }
+      .mode-btn.active {
+        background: #1e293b;
+        color: #38bdf8;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      }
+      .live-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #f87171;
+      }
+      .live-pill.online { color: #4ade80; }
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* 3D Viewport Controls */
       .zoom-controls {
         position: absolute;
-        top: 14px;
-        right: 14px;
+        top: 68px;
+        right: 12px;
         display: flex;
         gap: 6px;
-        z-index: 10;
+        z-index: 15;
       }
       .zoom-btn {
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(56, 189, 248, 0.35);
+        background: rgba(13, 19, 33, 0.88);
+        border: 1px solid rgba(56, 189, 248, 0.3);
         color: #38bdf8;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 15px;
         width: 34px;
         height: 34px;
         border-radius: 8px;
@@ -75,7 +137,6 @@
         width: auto;
         padding: 0 10px;
         font-size: 10px;
-        letter-spacing: 0.05em;
       }
       .floating-label {
         position: absolute;
@@ -94,23 +155,26 @@
         align-items: center;
         gap: 4px;
         margin-left: -42px;
+        z-index: 5;
       }
       .floating-label .dot {
         width: 5px;
         height: 5px;
         border-radius: 50%;
       }
+
+      /* Bottom 3D Agent Dock */
       .hud-overlay {
         position: absolute;
         bottom: 12px;
         right: 12px;
         width: 370px;
-        background: rgba(15, 23, 42, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(56, 189, 248, 0.25);
-        border-radius: 12px;
+        background: rgba(13, 19, 33, 0.92);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
         padding: 12px;
-        color: #e2e8f0;
+        z-index: 20;
       }
       .hud-header {
         display: flex;
@@ -118,47 +182,36 @@
         align-items: center;
         margin-bottom: 8px;
       }
-      .tab-group {
-        display: flex;
-        gap: 6px;
-      }
+      .tab-group { display: flex; gap: 6px; }
       .tab-btn {
-        background: rgba(30, 41, 59, 0.8);
+        background: rgba(30, 41, 59, 0.7);
         border: 1px solid transparent;
         color: #94a3b8;
         font-size: 10px;
         font-weight: 700;
-        padding: 4px 8px;
+        padding: 4px 9px;
         border-radius: 6px;
         cursor: pointer;
       }
       .tab-btn.active {
         color: #38bdf8;
-        border-color: rgba(56, 189, 248, 0.4);
-        background: rgba(56, 189, 248, 0.1);
-      }
-      .status-badge {
-        font-size: 10px;
-        font-weight: 700;
-        color: #f87171;
-      }
-      .status-badge.live {
-        color: #4ade80;
+        border-color: rgba(56, 189, 248, 0.35);
+        background: rgba(56, 189, 248, 0.12);
       }
       .agent-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        max-height: 220px;
+        gap: 7px;
+        max-height: 210px;
         overflow-y: auto;
       }
       .agent-card {
-        background: rgba(30, 41, 59, 0.65);
-        border: 1px solid rgba(148, 163, 184, 0.15);
-        border-radius: 8px;
-        padding: 8px;
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 9px;
+        padding: 8px 10px;
         cursor: pointer;
-        transition: border-color 0.2s;
+        transition: all 0.2s;
       }
       .agent-card.selected {
         border-color: #38bdf8;
@@ -177,7 +230,7 @@
         padding: 1px 6px;
         border-radius: 10px;
         text-transform: uppercase;
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.85);
       }
       .agent-task-text {
         font-size: 10px;
@@ -189,8 +242,8 @@
       }
       .progress-track {
         width: 100%;
-        height: 5px;
-        background: #0f172a;
+        height: 4px;
+        background: #090d16;
         border-radius: 4px;
         overflow: hidden;
       }
@@ -201,16 +254,190 @@
       .terminal-feed {
         max-height: 180px;
         overflow-y: auto;
-        font-family: monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 10px;
-        line-height: 1.4;
+        line-height: 1.45;
       }
-      .log-entry {
-        margin: 4px 0;
-        word-break: break-word;
-      }
+      .log-entry { margin: 4px 0; word-break: break-word; }
       .timestamp { color: #64748b; margin-right: 4px; }
       .agent-tag { font-weight: 700; margin-right: 4px; }
+
+      /* FULL-SCREEN ANALYTICS VIEW (Vocalyn + Hermes Hybrid) */
+      .analytics-page {
+        position: absolute;
+        inset: 0;
+        background: #070b14;
+        padding: 68px 14px 24px 14px;
+        overflow-y: auto;
+        touch-action: pan-y;
+        z-index: 25;
+      }
+      .analytics-grid {
+        max-width: 1040px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+      .dash-card {
+        background: #0d1321;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .col-12 { grid-column: span 12; }
+      .col-4 { grid-column: span 4; }
+      .col-6 { grid-column: span 6; }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .card-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #f8fafc;
+        margin: 0;
+      }
+      .card-sub {
+        font-size: 11px;
+        color: #64748b;
+        margin: 2px 0 0 0;
+      }
+      .kpi-badge {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 8px;
+      }
+
+      /* Area Chart SVG */
+      .chart-wrap {
+        width: 100%;
+        height: 155px;
+        margin-top: 6px;
+      }
+      .chart-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 6px;
+        padding: 0 4px;
+      }
+
+      /* Donut Ring Container */
+      .donut-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .donut-wrap {
+        position: relative;
+        width: 108px;
+        height: 108px;
+        flex-shrink: 0;
+      }
+      .donut-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .donut-num {
+        font-size: 18px;
+        font-weight: 800;
+        color: #f8fafc;
+      }
+      .donut-lbl {
+        font-size: 9px;
+        color: #64748b;
+      }
+      .legend-list {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        flex: 1;
+      }
+      .legend-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: #cbd5e1;
+      }
+      .legend-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      /* Segmented Pill Bars (Vocalyn Style) */
+      .topic-item {
+        margin-bottom: 10px;
+      }
+      .topic-item:last-child { margin-bottom: 0; }
+      .topic-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #cbd5e1;
+        margin-bottom: 4px;
+      }
+      .seg-row {
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        gap: 3px;
+      }
+      .seg-pill {
+        height: 7px;
+        border-radius: 3px;
+        background: #1e293b;
+      }
+      .seg-pill.filled {
+        background: linear-gradient(90deg, #38bdf8, #8b5cf6);
+      }
+
+      /* Agent Fleet Mini Row (Hermes Style) */
+      .fleet-row {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .fleet-chip {
+        background: #131c31;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 10px;
+        padding: 8px 10px;
+        min-width: 135px;
+        flex: 1;
+      }
+      .fleet-chip-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .fleet-chip-sub {
+        font-size: 10px;
+        color: #94a3b8;
+      }
 
       @media (max-width: 768px) {
         .hud-overlay {
@@ -219,103 +446,303 @@
           bottom: 10px;
           width: auto;
         }
-        .agent-list { max-height: 165px; }
+        .agent-list { max-height: 155px; }
+        .col-4, .col-6 { grid-column: span 12; }
       }
     </style>
   </head>
   <body>
     <div id="app">
-      <div
-        class="visualizer-container"
-        @mousedown="onPointerDown"
-        @mousemove="onPointerMove"
-        @mouseup="onPointerUp"
-        @wheel.prevent="onWheel"
-        @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove"
-        @touchend="onTouchEnd"
-      >
-        <div ref="canvasContainer" class="canvas-viewport"></div>
+      <div class="app-shell">
+        <!-- Unified Top Navigation Bar -->
+        <header class="top-navbar">
+          <div class="brand-cluster">
+            <div class="brand-logo">CO</div>
+            <span class="brand-title">ClipOrbit</span>
+          </div>
 
-        <!-- Floating 3D Labels -->
+          <div class="mode-switcher">
+            <button class="mode-btn" :class="{ active: viewMode === '3d' }" @click="viewMode = '3d'">
+              3D LAB
+            </button>
+            <button class="mode-btn" :class="{ active: viewMode === 'analytics' }" @click="viewMode = 'analytics'">
+              ANALYTICS
+            </button>
+          </div>
+
+          <div class="live-pill" :class="{ online: connected }">
+            <span class="live-dot"></span>
+            {{ connected ? 'LIVE' : 'OFFLINE' }}
+          </div>
+        </header>
+
+        <!-- VIEW 1: 3D AUTONOMOUS AI LAB -->
         <div
-          v-for="label in screenLabels"
-          :key="label.id"
-          class="floating-label"
-          :style="{ transform: `translate(${label.x}px, ${label.y}px)`, borderColor: label.color }"
+          v-show="viewMode === '3d'"
+          class="canvas-viewport"
+          @mousedown="onPointerDown"
+          @mousemove="onPointerMove"
+          @mouseup="onPointerUp"
+          @wheel.prevent="onWheel"
+          @touchstart.passive="onTouchStart"
+          @touchmove.passive="onTouchMove"
+          @touchend="onTouchEnd"
         >
-          <span class="dot" :style="{ backgroundColor: label.color }"></span>
-          {{ label.text }}
-        </div>
+          <div ref="canvasContainer" class="canvas-viewport"></div>
 
-        <!-- Top Left Studio Header -->
-        <div class="studio-badge">
-          <h1>CLIPORBIT // AI LABS</h1>
-          <p>Pinch/Scroll to zoom • Tap bot to inspect</p>
-        </div>
-
-        <!-- Top Right Zoom Controls -->
-        <div class="zoom-controls">
-          <button class="zoom-btn" @click="adjustZoom(-3)">+</button>
-          <button class="zoom-btn" @click="adjustZoom(3)">−</button>
-          <button v-if="focusedAgentId" class="zoom-btn reset" @click="focusedAgentId = null">OVERVIEW</button>
-        </div>
-
-        <!-- Bottom HUD: Progress Tracker & Live Logs -->
-        <div class="hud-overlay">
-          <div class="hud-header">
-            <div class="tab-group">
-              <button class="tab-btn" :class="{ active: activeTab === 'agents' }" @click="activeTab = 'agents'">
-                AGENTS ({{ Object.keys(agents).length }})
-              </button>
-              <button class="tab-btn" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
-                LIVE FEED
-              </button>
-            </div>
-            <span class="status-badge" :class="{ live: connected }">
-              {{ connected ? '● LIVE' : '○ OFFLINE' }}
-            </span>
+          <div
+            v-for="label in screenLabels"
+            :key="label.id"
+            class="floating-label"
+            :style="{ transform: `translate(${label.x}px, ${label.y}px)`, borderColor: label.color }"
+          >
+            <span class="dot" :style="{ backgroundColor: label.color }"></span>
+            {{ label.text }}
           </div>
 
-          <!-- Tab 1: Individual Robot Progress & Focus -->
-          <div v-if="activeTab === 'agents'" class="agent-list">
-            <div
-              v-for="ag in agents"
-              :key="ag.id"
-              class="agent-card"
-              :class="{ selected: focusedAgentId === ag.id }"
-              @click="toggleFocusAgent(ag.id)"
-            >
-              <div class="agent-top">
-                <span :style="{ color: ag.color }">{{ ag.name }}</span>
-                <span class="agent-state-pill" :style="{ color: ag.color }">
-                  {{ ag.state }} • {{ ag.progress }}%
-                </span>
-              </div>
-              <div class="agent-task-text">{{ ag.task }} (Done: {{ ag.completed_count }})</div>
-              <div class="progress-track">
-                <div
-                  class="progress-fill"
-                  :style="{ width: ag.progress + '%', backgroundColor: ag.color }"
-                ></div>
-              </div>
-            </div>
+          <div class="zoom-controls">
+            <button class="zoom-btn" @click="adjustZoom(-3)">+</button>
+            <button class="zoom-btn" @click="adjustZoom(3)">−</button>
+            <button v-if="focusedAgentId" class="zoom-btn reset" @click="focusedAgentId = null">OVERVIEW</button>
           </div>
 
-          <!-- Tab 2: Live Stream Terminal -->
-          <div v-if="activeTab === 'logs'" class="terminal-feed">
-            <p v-for="log in logs" :key="log.id" class="log-entry">
-              <span class="timestamp">[{{ log.time }}]</span>
-              <span class="agent-tag" :style="{ color: log.color }">{{ log.name }}:</span>
-              {{ log.message }}
-            </p>
+          <div class="hud-overlay">
+            <div class="hud-header">
+              <div class="tab-group">
+                <button class="tab-btn" :class="{ active: activeTab === 'agents' }" @click="activeTab = 'agents'">
+                  AGENTS ({{ Object.keys(agents).length }})
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
+                  LIVE LOGS
+                </button>
+              </div>
+              <span style="font-size: 10px; color: #64748b;">Tap bot to zoom</span>
+            </div>
+
+            <div v-if="activeTab === 'agents'" class="agent-list">
+              <div
+                v-for="ag in agents"
+                :key="ag.id"
+                class="agent-card"
+                :class="{ selected: focusedAgentId === ag.id }"
+                @click="toggleFocusAgent(ag.id)"
+              >
+                <div class="agent-top">
+                  <span :style="{ color: ag.color }">{{ ag.name }}</span>
+                  <span class="agent-state-pill" :style="{ color: ag.color }">
+                    {{ ag.state }} • {{ ag.progress }}%
+                  </span>
+                </div>
+                <div class="agent-task-text">{{ ag.task }} (Done: {{ ag.completed_count }})</div>
+                <div class="progress-track">
+                  <div class="progress-fill" :style="{ width: ag.progress + '%', backgroundColor: ag.color }"></div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="activeTab === 'logs'" class="terminal-feed">
+              <p v-for="log in logs" :key="log.id" class="log-entry">
+                <span class="timestamp">[{{ log.time }}]</span>
+                <span class="agent-tag" :style="{ color: log.color }">{{ log.name }}:</span>
+                {{ log.message }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: CLIPORBIT PERFORMANCE & TELEMETRY DASHBOARD -->
+        <div v-if="viewMode === 'analytics'" class="analytics-page">
+          <div class="analytics-grid">
+            <!-- Active Agent Fleet Status Bar (Hermes Style) -->
+            <div class="dash-card col-12">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Autonomous Agent Fleet</h3>
+                  <p class="card-sub">5 Production Workers • Render Cloud Runtime</p>
+                </div>
+                <span class="kpi-badge">{{ activeWorkerCount }} Active</span>
+              </div>
+              <div class="fleet-row">
+                <div v-for="ag in agents" :key="ag.id" class="fleet-chip">
+                  <div class="fleet-chip-top">
+                    <span :style="{ color: ag.color }">{{ ag.name.replace(' Agent', '') }}</span>
+                    <span style="font-size: 10px; color: #94a3b8;">{{ ag.completed_count }} done</span>
+                  </div>
+                  <div class="fleet-chip-sub">{{ ag.state.toUpperCase() }} • {{ ag.progress }}%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Shorts Production Curve (Vocalyn Area Chart Style) -->
+            <div class="dash-card col-12">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Shorts Production Performance</h3>
+                  <p class="card-sub">{{ totalShortsWeek }} Shorts published in the last 7 days</p>
+                </div>
+                <span class="kpi-badge">+18.4%</span>
+              </div>
+              <div class="chart-wrap">
+                <svg viewBox="0 0 600 150" width="100%" height="100%" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="clipGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.38" />
+                      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="35" x2="600" y2="35" stroke="#1e293b" stroke-dasharray="4 4" />
+                  <line x1="0" y1="75" x2="600" y2="75" stroke="#1e293b" stroke-dasharray="4 4" />
+                  <line x1="0" y1="115" x2="600" y2="115" stroke="#1e293b" stroke-dasharray="4 4" />
+                  <path :d="areaPath" fill="url(#clipGrad)" />
+                  <path :d="linePath" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+                  <circle
+                    v-for="(pt, i) in chartPoints"
+                    :key="i"
+                    :cx="pt.x"
+                    :cy="pt.y"
+                    r="4"
+                    fill="#070b14"
+                    stroke="#38bdf8"
+                    stroke-width="2.5"
+                  />
+                </svg>
+              </div>
+              <div class="chart-labels">
+                <span v-for="lbl in analytics.daily_labels" :key="lbl">{{ lbl }}</span>
+              </div>
+            </div>
+
+            <!-- Donut 1: Pipeline Outcomes (Vocalyn Donut Style) -->
+            <div class="dash-card col-4">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Pipeline Outcomes</h3>
+                  <p class="card-sub">{{ totalProcessed }} total clips evaluated</p>
+                </div>
+              </div>
+              <div class="donut-row">
+                <div class="donut-wrap">
+                  <svg viewBox="0 0 36 36" width="108" height="108">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#1e293b" stroke-width="3.6" />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#38bdf8" stroke-width="3.6"
+                      :stroke-dasharray="`${outcomePcts.pub} ${100 - outcomePcts.pub}`"
+                      stroke-dashoffset="25"
+                    />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#f472b6" stroke-width="3.6"
+                      :stroke-dasharray="`${outcomePcts.qa} ${100 - outcomePcts.qa}`"
+                      :stroke-dashoffset="25 - outcomePcts.pub"
+                    />
+                  </svg>
+                  <div class="donut-center">
+                    <span class="donut-num">{{ totalProcessed }}</span>
+                    <span class="donut-lbl">Clips</span>
+                  </div>
+                </div>
+                <div class="legend-list">
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#38bdf8"></span>Published</span>
+                    <strong>{{ outcomePcts.pub }}%</strong>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#f472b6"></span>QA Filtered</span>
+                    <strong>{{ outcomePcts.qa }}%</strong>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#64748b"></span>Queued</span>
+                    <strong>{{ outcomePcts.queue }}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Segmented Bars: Top Performing Niches (Vocalyn Segmented Style) -->
+            <div class="dash-card col-4">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Top Viral Hook Topics</h3>
+                  <p class="card-sub">Retention score distribution</p>
+                </div>
+              </div>
+              <div style="margin-top: 8px;">
+                <div v-for="topic in analytics.topics" :key="topic.name" class="topic-item">
+                  <div class="topic-top">
+                    <span>{{ topic.name }}</span>
+                    <strong>{{ topic.pct }}%</strong>
+                  </div>
+                  <div class="seg-row">
+                    <span
+                      v-for="n in 10"
+                      :key="n"
+                      class="seg-pill"
+                      :class="{ filled: n <= Math.round(topic.pct / 5) }"
+                    ></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Donut 2: Stack & Tool Compute Split (Hermes Tools Donut Style) -->
+            <div class="dash-card col-4">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Pipeline Tool Split</h3>
+                  <p class="card-sub">Compute & API share</p>
+                </div>
+              </div>
+              <div class="donut-row">
+                <div class="donut-wrap">
+                  <svg viewBox="0 0 36 36" width="108" height="108">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#1e293b" stroke-width="3.6" />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#8b5cf6" stroke-width="3.6"
+                      :stroke-dasharray="`${analytics.tools.gemini} ${100 - analytics.tools.gemini}`"
+                      stroke-dashoffset="25"
+                    />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#22d3ee" stroke-width="3.6"
+                      :stroke-dasharray="`${analytics.tools.ffmpeg} ${100 - analytics.tools.ffmpeg}`"
+                      :stroke-dashoffset="25 - analytics.tools.gemini"
+                    />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#4ade80" stroke-width="3.6"
+                      :stroke-dasharray="`${analytics.tools.youtube} ${100 - analytics.tools.youtube}`"
+                      :stroke-dashoffset="25 - analytics.tools.gemini - analytics.tools.ffmpeg"
+                    />
+                  </svg>
+                  <div class="donut-center">
+                    <span class="donut-num">4</span>
+                    <span class="donut-lbl">Modules</span>
+                  </div>
+                </div>
+                <div class="legend-list">
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#8b5cf6"></span>Gemini AI</span>
+                    <strong>{{ analytics.tools.gemini }}%</strong>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#22d3ee"></span>FFmpeg Render</span>
+                    <strong>{{ analytics.tools.ffmpeg }}%</strong>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#4ade80"></span>YouTube API</span>
+                    <strong>{{ analytics.tools.youtube }}%</strong>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-left"><span class="legend-dot" style="background:#64748b"></span>SQLite DB</span>
+                    <strong>{{ analytics.tools.sqlite }}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      const { createApp, ref, onMounted, onUnmounted } = Vue;
+      const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
       createApp({
         setup() {
@@ -326,6 +753,63 @@
           const screenLabels = ref([]);
           const activeTab = ref('agents');
           const focusedAgentId = ref(null);
+          const viewMode = ref('3d');
+
+          const analytics = ref({
+            daily_labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'],
+            daily_shorts: [3, 5, 4, 7, 6, 8, 2],
+            outcomes: { published: 35, qa_filtered: 6, queued: 4 },
+            tools: { gemini: 42, ffmpeg: 31, youtube: 17, sqlite: 10 },
+            topics: [
+              { name: 'Tech & AI Founders', pct: 38 },
+              { name: 'Startup Breakdowns', pct: 27 },
+              { name: 'Productivity Systems', pct: 19 },
+              { name: 'Finance & Markets', pct: 16 }
+            ]
+          });
+
+          const activeWorkerCount = computed(() =>
+            Object.values(agents.value).filter((a) => a.state === 'working' || a.state === 'moving').length
+          );
+
+          const totalShortsWeek = computed(() =>
+            analytics.value.daily_shorts.reduce((sum, n) => sum + n, 0)
+          );
+
+          const totalProcessed = computed(() => {
+            const o = analytics.value.outcomes;
+            return o.published + o.qa_filtered + o.queued;
+          });
+
+          const outcomePcts = computed(() => {
+            const total = Math.max(1, totalProcessed.value);
+            const o = analytics.value.outcomes;
+            const pub = Math.round((o.published / total) * 100);
+            const qa = Math.round((o.qa_filtered / total) * 100);
+            return { pub, qa, queue: Math.max(0, 100 - pub - qa) };
+          });
+
+          const chartPoints = computed(() => {
+            const vals = analytics.value.daily_shorts;
+            const maxVal = Math.max(10, ...vals);
+            const stepX = 580 / Math.max(1, vals.length - 1);
+            return vals.map((v, idx) => ({
+              x: 10 + idx * stepX,
+              y: 135 - (v / maxVal) * 115
+            }));
+          });
+
+          const linePath = computed(() => {
+            const pts = chartPoints.value;
+            if (!pts.length) return '';
+            return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+          });
+
+          const areaPath = computed(() => {
+            const pts = chartPoints.value;
+            if (!pts.length) return '';
+            return `${linePath.value} L ${pts[pts.length - 1].x} 145 L ${pts[0].x} 145 Z`;
+          });
 
           let scene, camera, renderer, animationFrameId, particleField;
           const stationMeshes = {};
@@ -336,7 +820,6 @@
           const agentTargets = {};
           const agentStates = {};
 
-          // Camera Orbit & Zoom State
           let isDragging = false;
           let prevX = 0;
           let initialPinchDist = null;
@@ -345,26 +828,15 @@
           const lookAtTarget = new THREE.Vector3(0, 0, 0);
 
           const clampRadius = (r) => Math.max(5.5, Math.min(36, r));
-
-          const adjustZoom = (delta) => {
-            cameraRadius = clampRadius(cameraRadius + delta);
-          };
-
-          const onWheel = (e) => {
-            cameraRadius = clampRadius(cameraRadius + e.deltaY * 0.015);
-          };
-
-          const onPointerDown = (e) => {
-            isDragging = true;
-            prevX = e.clientX;
-          };
+          const adjustZoom = (delta) => { cameraRadius = clampRadius(cameraRadius + delta); };
+          const onWheel = (e) => { cameraRadius = clampRadius(cameraRadius + e.deltaY * 0.015); };
+          const onPointerDown = (e) => { isDragging = true; prevX = e.clientX; };
           const onPointerMove = (e) => {
             if (!isDragging) return;
             cameraAngle -= (e.clientX - prevX) * 0.006;
             prevX = e.clientX;
           };
           const onPointerUp = () => { isDragging = false; };
-
           const getTouchDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
           const onTouchStart = (e) => {
@@ -377,23 +849,17 @@
               initialPinchDist = getTouchDist(e.touches[0], e.touches[1]);
             }
           };
-
           const onTouchMove = (e) => {
             if (e.touches.length === 1 && isDragging) {
               cameraAngle -= (e.touches[0].clientX - prevX) * 0.008;
               prevX = e.touches[0].clientX;
             } else if (e.touches.length === 2 && initialPinchDist) {
               const currentDist = getTouchDist(e.touches[0], e.touches[1]);
-              const diff = initialPinchDist - currentDist;
-              cameraRadius = clampRadius(cameraRadius + diff * 0.06);
+              cameraRadius = clampRadius(cameraRadius + (initialPinchDist - currentDist) * 0.06);
               initialPinchDist = currentDist;
             }
           };
-
-          const onTouchEnd = () => {
-            isDragging = false;
-            initialPinchDist = null;
-          };
+          const onTouchEnd = () => { isDragging = false; initialPinchDist = null; };
 
           const toggleFocusAgent = (id) => {
             if (focusedAgentId.value === id) {
@@ -428,9 +894,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             canvasContainer.value.appendChild(renderer.domElement);
 
-            // Clean-Tech Studio Three-Point Lighting
             scene.add(new THREE.AmbientLight(0xdbeafe, 0.8));
-
             const keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
             keyLight.position.set(12, 24, 14);
             scene.add(keyLight);
@@ -439,7 +903,6 @@
             rimLight.position.set(-14, 14, -14);
             scene.add(rimLight);
 
-            // Architectural Circular Lab Floor Deck
             const deckFloor = new THREE.Mesh(
               new THREE.CylinderGeometry(16.5, 17.2, 0.25, 48),
               new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 0.28, metalness: 0.65 })
@@ -447,7 +910,6 @@
             deckFloor.position.y = -0.13;
             scene.add(deckFloor);
 
-            // Outer Glowing Perimeter Ring
             const outerPerimeter = new THREE.Mesh(
               new THREE.RingGeometry(16.3, 16.5, 64),
               new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide })
@@ -456,7 +918,6 @@
             outerPerimeter.position.y = 0.01;
             scene.add(outerPerimeter);
 
-            // Inner Orbital Ring
             const innerOrbit = new THREE.Mesh(
               new THREE.RingGeometry(9.4, 9.52, 64),
               new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide })
@@ -465,12 +926,10 @@
             innerOrbit.position.y = 0.01;
             scene.add(innerOrbit);
 
-            // Subtle High-Tech Floor Grid
             const grid = new THREE.GridHelper(30, 30, 0x1e293b, 0x0f172a);
             grid.position.y = 0.005;
             scene.add(grid);
 
-            // Floating Ambient Data Particles
             const particleCount = 90;
             const particleGeo = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
@@ -487,18 +946,12 @@
             scene.add(particleField);
           };
 
-          // Build glowing energy conduit pathway from Center Hub (0,0) to each Lab
           const createFloorConduit = (targetX, targetZ, color) => {
             const dist = Math.hypot(targetX, targetZ);
             if (dist < 0.5) return;
             const conduit = new THREE.Mesh(
               new THREE.PlaneGeometry(0.14, dist),
-              new THREE.MeshBasicMaterial({
-                color: color || 0x38bdf8,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.45
-              })
+              new THREE.MeshBasicMaterial({ color: color || 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.45 })
             );
             conduit.rotation.x = Math.PI / 2;
             conduit.rotation.z = -Math.atan2(targetX, targetZ);
@@ -506,22 +959,15 @@
             scene.add(conduit);
           };
 
-          // Build custom futuristic AI Laboratory pods for each station
           const createStation = (key, station) => {
             const group = new THREE.Group();
             const accent = station.color || '#38bdf8';
 
             const ceramicWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.22, metalness: 0.2 });
             const darkSlateMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.7 });
-            const holoGlassMat = new THREE.MeshBasicMaterial({
-              color: accent,
-              transparent: true,
-              opacity: 0.35,
-              side: THREE.DoubleSide
-            });
+            const holoGlassMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
             const neonMat = new THREE.MeshBasicMaterial({ color: accent });
 
-            // 1. Sleek Circular Base Platform + Glowing Ring
             const basePad = new THREE.Mesh(new THREE.CylinderGeometry(1.85, 2.1, 0.24, 32), darkSlateMat);
             basePad.position.y = 0.12;
             group.add(basePad);
@@ -536,57 +982,42 @@
             neonRing.position.y = 0.2;
             group.add(neonRing);
 
-            // Connect station to Director Hub with a floor conduit
             createFloorConduit(station.x, station.z, accent);
 
-            // 2. Station-Specific Lab Equipment
             const animRig = new THREE.Group();
             group.add(animRig);
 
             if (key === 'hub') {
-              // Central Director Core: Floating crystal core + dual rotating orbital rings
               const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), neonMat);
               core.position.y = 1.45;
-              animRig.add(core);
-
               const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.025, 10, 32), ceramicWhiteMat);
               ring1.position.y = 1.45;
               ring1.rotation.x = 0.6;
-              animRig.add(ring1);
-
               const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.02, 10, 32), neonMat);
               ring2.position.y = 1.45;
               ring2.rotation.y = 0.8;
-              animRig.add(ring2);
-
+              animRig.add(core, ring1, ring2);
               stationAnimParts[key] = { type: 'hub', core, ring1, ring2 };
             } else if (key === 'hunter') {
-              // Hunter & Scout Bay: Ceramic pedestal + Radar Dish + Scanning Wave
               const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.36, 0.9, 16), ceramicWhiteMat);
               pillar.position.y = 0.68;
               group.add(pillar);
 
               const dishGroup = new THREE.Group();
               dishGroup.position.set(0, 1.35, -0.2);
-              const dish = new THREE.Mesh(
-                new THREE.SphereGeometry(0.65, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.4),
-                ceramicWhiteMat
-              );
+              const dish = new THREE.Mesh(new THREE.SphereGeometry(0.65, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.4), ceramicWhiteMat);
               dish.rotation.x = Math.PI * 0.72;
               const dishTip = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 8), neonMat);
               dishTip.position.set(0, 0.15, 0.25);
               dishTip.rotation.x = 0.7;
               dishGroup.add(dish, dishTip);
               animRig.add(dishGroup);
-
               stationAnimParts[key] = { type: 'hunter', dishGroup };
             } else if (key === 'editor') {
-              // Editor Render Studio: Curved 9:16 Vertical Multi-Screen Array
               const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.65, 0.45), ceramicWhiteMat);
               desk.position.set(0, 0.55, -0.35);
               group.add(desk);
 
-              // Three 9:16 vertical holographic screens (center + angled wings)
               const centerScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.95), holoGlassMat);
               centerScreen.position.set(0, 1.45, -0.35);
               const centerBorder = new THREE.LineSegments(
@@ -606,15 +1037,13 @@
               group.add(centerScreen, centerBorder, leftScreen, rightScreen);
               stationAnimParts[key] = { type: 'editor', centerScreen };
             } else if (key === 'analyst') {
-              // Analyst & QA Lab: Holographic 3D Bar Chart Console
               const table = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.55, 0.65, 20), ceramicWhiteMat);
               table.position.set(0, 0.55, -0.25);
               group.add(table);
 
               const barsGroup = new THREE.Group();
               barsGroup.position.set(0, 1.0, -0.25);
-              const heights = [0.35, 0.65, 0.48, 0.85];
-              heights.forEach((h, idx) => {
+              [0.35, 0.65, 0.48, 0.85].forEach((h, idx) => {
                 const bar = new THREE.Mesh(new THREE.BoxGeometry(0.14, h, 0.14), neonMat);
                 bar.position.set((idx - 1.5) * 0.24, h / 2, 0);
                 barsGroup.add(bar);
@@ -622,7 +1051,6 @@
               animRig.add(barsGroup);
               stationAnimParts[key] = { type: 'analyst', barsGroup };
             } else if (key === 'publisher') {
-              // Shorts Broadcast Tower: Tall white spire + pulsing signal rings
               const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.5, 0.9, 16), ceramicWhiteMat);
               towerBase.position.set(0, 0.68, -0.25);
               const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.14, 1.15, 12), darkSlateMat);
@@ -635,7 +1063,6 @@
               pulseRing.rotation.x = Math.PI / 2;
               pulseRing.position.set(0, 2.1, -0.25);
               animRig.add(pulseRing);
-
               stationAnimParts[key] = { type: 'publisher', pulseRing, beacon };
             }
 
@@ -660,28 +1087,15 @@
             return new THREE.CanvasTexture(canvas);
           };
 
-          // Build sleek white hovering AI assistant robot
           const getOrCreateAgent = (agentData) => {
             const agentId = agentData.id;
             if (!agentMeshes[agentId]) {
               const root = new THREE.Group();
               const accentColor = agentData.color || '#38bdf8';
 
-              const whiteShellMat = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                roughness: 0.18,
-                metalness: 0.12
-              });
-              const darkVisorMat = new THREE.MeshStandardMaterial({
-                color: 0x090d16,
-                roughness: 0.12,
-                metalness: 0.7
-              });
-              const metallicTrimMat = new THREE.MeshStandardMaterial({
-                color: 0x94a3b8,
-                roughness: 0.3,
-                metalness: 0.8
-              });
+              const whiteShellMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.18, metalness: 0.12 });
+              const darkVisorMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.12, metalness: 0.7 });
+              const metallicTrimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3, metalness: 0.8 });
               const eyeGlowMat = new THREE.MeshBasicMaterial({ color: accentColor });
 
               const bodyFloatGroup = new THREE.Group();
@@ -781,12 +1195,7 @@
               const holoOrbitGroup = new THREE.Group();
               holoOrbitGroup.position.y = 1.15;
               holoOrbitGroup.visible = false;
-              const cardMat = new THREE.MeshBasicMaterial({
-                color: accentColor,
-                transparent: true,
-                opacity: 0.55,
-                side: THREE.DoubleSide
-              });
+              const cardMat = new THREE.MeshBasicMaterial({ color: accentColor, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
               for (let i = 0; i < 3; i++) {
                 const angle = (i * Math.PI * 2) / 3;
                 const card = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.24), cardMat);
@@ -814,7 +1223,7 @@
           };
 
           const updateLabels = () => {
-            if (!canvasContainer.value) return;
+            if (!canvasContainer.value || viewMode.value !== '3d') return;
             const width = canvasContainer.value.clientWidth;
             const height = canvasContainer.value.clientHeight;
             const labels = [];
@@ -855,6 +1264,7 @@
 
           const animate = () => {
             animationFrameId = requestAnimationFrame(animate);
+            if (viewMode.value !== '3d') return;
             const now = Date.now();
 
             const desiredLookAt = new THREE.Vector3(0, 0.8, 0);
@@ -870,12 +1280,8 @@
             camera.position.y = camHeight;
             camera.lookAt(lookAtTarget);
 
-            // Subtle ambient particle drift
-            if (particleField) {
-              particleField.rotation.y = now * 0.00012;
-            }
+            if (particleField) particleField.rotation.y = now * 0.00012;
 
-            // Animate Station Lab Equipment
             for (const part of Object.values(stationAnimParts)) {
               if (part.type === 'hub') {
                 part.core.rotation.y = now * 0.002;
@@ -892,7 +1298,6 @@
               }
             }
 
-            // Animate Robots
             for (const id in agentMeshes) {
               const robot = agentMeshes[id];
               const parts = agentParts[id];
@@ -955,6 +1360,10 @@
               let data;
               try { data = JSON.parse(event.data); } catch { return; }
 
+              if (data.analytics) {
+                analytics.value = data.analytics;
+              }
+
               if (data.type === 'INITIAL_STATE') {
                 for (const [key, station] of Object.entries(data.stations)) {
                   if (!stationMeshes[key]) createStation(key, station);
@@ -1008,7 +1417,10 @@
 
           return {
             canvasContainer, connected, logs, agents, screenLabels,
-            activeTab, focusedAgentId, adjustZoom, toggleFocusAgent,
+            activeTab, focusedAgentId, viewMode, analytics,
+            activeWorkerCount, totalShortsWeek, totalProcessed, outcomePcts,
+            chartPoints, linePath, areaPath,
+            adjustZoom, toggleFocusAgent,
             onPointerDown, onPointerMove, onPointerUp, onWheel,
             onTouchStart, onTouchMove, onTouchEnd
           };

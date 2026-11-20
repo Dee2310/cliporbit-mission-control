@@ -3,6 +3,7 @@ import json
 import os
 import socket
 import time
+from datetime import datetime
 from aiohttp import web
 
 CONNECTED_CLIENTS = set()
@@ -23,6 +24,28 @@ AGENTS = {
     "publisher_agent": {"id": "publisher_agent", "name": "Publisher Agent", "role": "YouTube Upload", "color": "#fbbf24", "state": "idle", "progress": 0, "task": "Standby", "station": "hub", "completed_count": 0}
 }
 
+ANALYTICS = {
+    "daily_labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"],
+    "daily_shorts": [3, 5, 4, 7, 6, 8, 2],
+    "outcomes": {
+        "published": 35,
+        "qa_filtered": 6,
+        "queued": 4
+    },
+    "tools": {
+        "gemini": 42,
+        "ffmpeg": 31,
+        "youtube": 17,
+        "sqlite": 10
+    },
+    "topics": [
+        {"name": "Tech & AI Founders", "pct": 38},
+        {"name": "Startup Breakdowns", "pct": 27},
+        {"name": "Productivity Systems", "pct": 19},
+        {"name": "Finance & Markets", "pct": 16}
+    ]
+}
+
 def get_local_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -38,11 +61,9 @@ async def broadcast(event_data):
         message = json.dumps(event_data)
         await asyncio.gather(*[ws.send_str(message) for ws in CONNECTED_CLIENTS], return_exceptions=True)
 
-# HTTP Route: Serve index.html
 async def index_handler(request):
     return web.FileResponse("index.html")
 
-# HTTP Webhook: Real ClipOrbit agents POST live updates here
 async def webhook_handler(request):
     try:
         data = await request.json()
@@ -57,8 +78,12 @@ async def webhook_handler(request):
     message = data.get("message", task)
 
     if agent_id in AGENTS:
-        if progress >= 100 and state == "idle" and AGENTS[agent_id]["progress"] < 100:
+        was_incomplete = AGENTS[agent_id]["progress"] < 100
+        if progress >= 100 and state == "idle" and was_incomplete:
             AGENTS[agent_id]["completed_count"] += 1
+            if agent_id == "publisher_agent":
+                ANALYTICS["daily_shorts"][-1] += 1
+                ANALYTICS["outcomes"]["published"] += 1
 
         AGENTS[agent_id].update({
             "state": state,
@@ -71,12 +96,12 @@ async def webhook_handler(request):
             "event_id": f"evt_{int(time.time()*1000)}",
             "agent": AGENTS[agent_id],
             "target": STATIONS.get(station_key, STATIONS["hub"]),
+            "analytics": ANALYTICS,
             "message": message
         })
 
     return web.json_response({"status": "ok"})
 
-# WebSocket Route: Streams updates to your iPhone & laptop
 async def ws_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
@@ -85,7 +110,8 @@ async def ws_handler(request):
         await ws.send_str(json.dumps({
             "type": "INITIAL_STATE",
             "stations": STATIONS,
-            "agents": AGENTS
+            "agents": AGENTS,
+            "analytics": ANALYTICS
         }))
         async for msg in ws:
             pass
