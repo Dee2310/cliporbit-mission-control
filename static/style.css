@@ -1,0 +1,506 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg-deep: #090c14;
+  --bg-panel: rgba(15, 19, 31, 0.92);
+  --bg-card: #161c2e;
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --accent-primary: #6366f1;
+  --accent-cyan: #38bdf8;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  touch-action: none;
+}
+
+.hq-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.canvas-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+/* TOP HEADER BAR */
+.hq-topbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 46px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 40;
+}
+
+.hq-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hq-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.hq-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.hq-title span {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.hq-nav {
+  display: flex;
+  gap: 4px;
+  background: rgba(9, 12, 20, 0.85);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.nav-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.nav-tab.active {
+  background: #1e2538;
+  color: var(--text-main);
+}
+
+.nav-badge {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+
+.hq-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-counter {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+
+.cycle-btn {
+  background: #1e2538;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* FLOATING 3D ROOM & AGENT TAGS */
+.room-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(13, 17, 28, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  padding: 4px 8px;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease;
+}
+
+.room-tag:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.room-tag-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.room-tag-sub {
+  font-size: 8.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.agent-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid #8b5cf6;
+  color: var(--text-main);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 8;
+}
+
+/* LEFT TEAM INSPECTOR DRAWER */
+.team-drawer {
+  position: absolute;
+  top: 66px;
+  left: 10px;
+  bottom: 68px;
+  width: 320px;
+  background: rgba(15, 19, 31, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 14px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  padding-bottom: 8px;
+}
+
+.drawer-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.close-btn {
+  background: #1e2538;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.kpi-box {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 7px;
+  text-align: center;
+}
+
+.kpi-val {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.kpi-lbl {
+  font-size: 9px;
+  color: #64748b;
+}
+
+.sec-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tool-chip {
+  background: var(--bg-card);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.tool-status {
+  font-size: 8.5px;
+  color: #4ade80;
+  margin-top: 2px;
+}
+
+.skill-row {
+  margin-bottom: 7px;
+}
+
+.skill-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-family: ui-monospace, monospace;
+  margin-bottom: 3px;
+}
+
+.skill-bar {
+  height: 4px;
+  background: #1e2538;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.skill-fill {
+  height: 100%;
+  background: #8b5cf6;
+  transition: width 0.3s ease;
+}
+
+.spawn-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 2D OFFICE MINIMAP RADAR */
+.minimap-box {
+  position: absolute;
+  bottom: 68px;
+  right: 12px;
+  width: 132px;
+  height: 112px;
+  background: rgba(13, 17, 28, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 20;
+}
+
+.minimap-title {
+  font-size: 8px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+
+.minimap-canvas {
+  position: relative;
+  width: 100%;
+  height: 86px;
+  background: var(--bg-deep);
+  border-radius: 6px;
+}
+
+.mm-room {
+  position: absolute;
+  width: 16px;
+  height: 14px;
+  border-radius: 3px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.mm-brain {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+/* BOTTOM COMMAND BAR */
+.command-dock {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  height: 48px;
+  background: rgba(15, 19, 31, 0.95);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 12px;
+  padding: 0 8px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 40;
+}
+
+.cmd-select {
+  background: #1e2538;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 8px;
+  outline: none;
+  max-width: 135px;
+}
+
+.cmd-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 12px;
+  outline: none;
+}
+
+.cmd-send {
+  background: var(--accent-primary);
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* FULL-SCREEN VIEWS: TASKS BOARD & THE BRAIN */
+.panel-page {
+  position: absolute;
+  inset: 0;
+  background: #0b0e17;
+  padding: 66px 14px 70px 14px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  z-index: 35;
+}
+
+.panel-container {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-section {
+  background: #131826;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.task-card {
+  background: #1a2133;
+  border-radius: 9px;
+  padding: 10px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.approve-btn {
+  background: #f59e0b;
+  color: #090d16;
+  border: none;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+/* MOBILE IPHONE ADAPTATIONS */
+@media (max-width: 768px) {
+  .hq-title span,
+  .cycle-btn {
+    display: none;
+  }
+  .team-drawer {
+    width: auto;
+    right: 10px;
+    top: auto;
+    max-height: 54vh;
+  }
+  .minimap-box {
+    display: none;
+  }
+  .cmd-select {
+    max-width: 105px;
+    font-size: 10px;
+  }
+}
