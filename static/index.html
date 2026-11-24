@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Agent HQ // Dee's AI Office</title>
+    <title>Agent HQ // Universal Command Center</title>
     <link rel="stylesheet" href="/static/style.css" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,15 +11,19 @@
   <body>
     <div id="app">
       <div class="hq-shell">
+        <!-- TOP HEADER BAR -->
         <header class="hq-topbar">
           <div class="hq-brand">
             <div class="hq-logo">HQ</div>
-            <div class="hq-title">AGENT HQ <span>• DEE'S WORKFLOW</span></div>
+            <div class="hq-title">AGENT HQ <span>• UNIVERSAL</span></div>
           </div>
 
           <nav class="hq-nav">
             <button class="nav-tab" :class="{ active: activeView === 'office' }" @click="activeView = 'office'">
-              Office
+              Campus
+            </button>
+            <button class="nav-tab" :class="{ active: activeView === 'org' }" @click="activeView = 'org'">
+              Org <span class="nav-badge">{{ totalAgentCount }}</span>
             </button>
             <button class="nav-tab" :class="{ active: activeView === 'tasks' }" @click="activeView = 'tasks'">
               Tasks <span class="nav-badge">{{ tasks.length }}</span>
@@ -31,11 +35,11 @@
 
           <div class="hq-status">
             <button class="cycle-btn" @click="cycleLighting">{{ lightingLabel }}</button>
-            <div class="agent-counter">● {{ totalAgentCount }} agents • {{ runningAgentCount }} running</div>
+            <div class="agent-counter">● {{ totalAgentCount }} live • {{ runningAgentCount }} active</div>
           </div>
         </header>
 
-        <!-- 3D ISOMETRIC AI OFFICE -->
+        <!-- VIEW 1: 3D DAYLIGHT CITY CAMPUS -->
         <div
           v-show="activeView === 'office'"
           class="canvas-viewport"
@@ -49,6 +53,7 @@
         >
           <div ref="canvasContainer" class="canvas-viewport"></div>
 
+          <!-- Floating Studio Building Headers -->
           <div
             v-for="tag in roomTags"
             :key="tag.id"
@@ -62,61 +67,70 @@
             <div class="room-tag-sub">{{ tag.agentCount }} agents • {{ tag.runningCount }} running</div>
           </div>
 
+          <!-- Interactive Floating Specialist Pills (Tap to open Job Card) -->
           <div
             v-for="pill in agentPills"
             :key="pill.id"
-            class="agent-pill"
+            class="agent-pill interactive-pill"
             :style="{ left: pill.x + 'px', top: pill.y + 'px', borderColor: pill.color }"
+            @click.stop="selectAgent(pill.id)"
           >
             {{ pill.name }}
           </div>
 
           <!-- Left Team Inspector Drawer -->
-          <aside v-if="selectedRoom" class="team-drawer">
+          <aside v-if="selectedRoom && !selectedAgent" class="team-drawer">
             <div class="drawer-head">
               <div>
                 <h3 class="drawer-title" :style="{ color: selectedRoom.color }">{{ selectedRoom.name }}</h3>
-                <div style="font-size: 10px; color: #94a3b8;">
+                <div style="font-size: 10px; color: #475569;">
                   {{ selectedRoom.business }} • Lead: {{ selectedRoom.lead }}
                 </div>
               </div>
-              <button class="close-btn" @click="clearRoomFocus">Overview</button>
+              <button class="close-btn" @click="clearFocus">Overview</button>
             </div>
 
             <div class="kpi-strip">
               <div class="kpi-box">
                 <div class="kpi-val">{{ selectedRoom.stats.today }}</div>
-                <div class="kpi-lbl">Tasks Today</div>
+                <div class="kpi-lbl">Done Today</div>
               </div>
               <div class="kpi-box">
-                <div class="kpi-val" style="color:#4ade80">{{ roomRunningCount(selectedRoom.id) }}</div>
+                <div class="kpi-val" style="color:#16a34a">{{ roomRunningCount(selectedRoom.id) }}</div>
                 <div class="kpi-lbl">Running</div>
               </div>
               <div class="kpi-box">
-                <div class="kpi-val">{{ selectedRoom.stats.turnaround }}</div>
-                <div class="kpi-lbl">Avg Speed</div>
+                <div class="kpi-val">{{ roomAgentsList(selectedRoom.id).length }}</div>
+                <div class="kpi-lbl">Specialists</div>
               </div>
             </div>
 
+            <!-- Live Agents inside this Department -->
             <div>
-              <div class="sec-label">Connected Tools (MCP / APIs)</div>
+              <div class="sec-label">Active Specialists (Tap for Job Card)</div>
+              <div v-if="roomAgentsList(selectedRoom.id).length === 0" class="empty-hint">
+                No agents checked into this studio yet.
+              </div>
+              <div
+                v-for="ag in roomAgentsList(selectedRoom.id)"
+                :key="ag.id"
+                class="agent-mini-card"
+                @click="selectAgent(ag.id)"
+              >
+                <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+                  <span :style="{ color: ag.color }">{{ ag.name }}</span>
+                  <span style="font-size:10px; color:#475569;">{{ ag.state.toUpperCase() }}</span>
+                </div>
+                <div style="font-size:10px; color:#64748b; margin-top:2px;">{{ ag.task || 'Standby' }}</div>
+              </div>
+            </div>
+
+            <div v-if="selectedRoom.tools && selectedRoom.tools.length">
+              <div class="sec-label">Connected Live Tools</div>
               <div class="tools-grid">
                 <div v-for="t in selectedRoom.tools" :key="t.name" class="tool-chip">
                   <div style="font-weight: 700;">{{ t.name }}</div>
                   <div class="tool-status">● {{ t.status }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div class="sec-label">Active Skills</div>
-              <div v-for="sk in selectedRoom.skills" :key="sk.name" class="skill-row">
-                <div class="skill-top">
-                  <span>{{ sk.name }}</span>
-                  <span style="color:#94a3b8">{{ sk.pct }}%</span>
-                </div>
-                <div class="skill-bar">
-                  <div class="skill-fill" :style="{ width: sk.pct + '%', backgroundColor: selectedRoom.color }"></div>
                 </div>
               </div>
             </div>
@@ -126,11 +140,11 @@
             </button>
           </aside>
 
-          <!-- 2D Office Minimap Radar -->
+          <!-- 2D City Minimap Radar -->
           <div class="minimap-box">
-            <div class="minimap-title">OFFICE RADAR</div>
+            <div class="minimap-title">CAMPUS RADAR</div>
             <div class="minimap-canvas">
-              <div class="mm-brain" @click="clearRoomFocus" title="The Brain"></div>
+              <div class="mm-brain" @click="clearFocus" title="Central Plaza"></div>
               <div
                 v-for="rm in rooms"
                 :key="rm.id"
@@ -146,66 +160,175 @@
           </div>
         </div>
 
-        <!-- TAB 2: TASK BOARD -->
+        <!-- INTERACTIVE AGENT JOB CARD MODAL / DRAWER -->
+        <div v-if="selectedAgent" class="job-modal-backdrop" @click.self="selectedAgentId = null">
+          <div class="job-card">
+            <div class="job-card-header" :style="{ borderColor: selectedAgent.color }">
+              <div>
+                <span class="job-biz-badge" :style="{ backgroundColor: selectedAgent.color }">
+                  {{ selectedAgent.business || 'Agent HQ' }}
+                </span>
+                <h2 class="job-agent-name">{{ selectedAgent.name }}</h2>
+                <div class="job-agent-role">{{ selectedAgent.role }} • {{ selectedAgent.state.toUpperCase() }} ({{ selectedAgent.progress }}%)</div>
+              </div>
+              <button class="close-btn" @click="selectedAgentId = null">✕</button>
+            </div>
+
+            <!-- Live Progress Bar -->
+            <div class="job-live-status">
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; font-weight:600; margin-bottom:4px;">
+                <span>Current Task: {{ selectedAgent.task || 'Awaiting dispatch' }}</span>
+                <span>{{ selectedAgent.progress }}%</span>
+              </div>
+              <div class="skill-bar">
+                <div
+                  class="skill-fill"
+                  :style="{ width: selectedAgent.progress + '%', backgroundColor: selectedAgent.color }"
+                ></div>
+              </div>
+            </div>
+
+            <!-- 1. MISSION -->
+            <div class="job-section">
+              <div class="job-sec-title">1. MISSION</div>
+              <p class="job-sec-body">
+                {{ selectedAgent.mission || 'No custom mission string reported by this agent yet.' }}
+              </p>
+            </div>
+
+            <!-- 2. TOOLS -->
+            <div class="job-section">
+              <div class="job-sec-title">2. TOOLS & PERMISSIONS</div>
+              <div v-if="selectedAgent.tools && selectedAgent.tools.length" class="job-tools-wrap">
+                <span v-for="tool in selectedAgent.tools" :key="tool" class="job-tool-pill">
+                  {{ tool }}
+                </span>
+              </div>
+              <p v-else class="job-sec-body" style="color:#64748b;">
+                No tools declared in live telemetry payload yet.
+              </p>
+            </div>
+
+            <!-- 3. THE RULE -->
+            <div class="job-rule-box">
+              <div class="job-rule-title">3. THE RULE (HARD GUARDRAIL)</div>
+              <p class="job-rule-body">
+                {{ selectedAgent.rule || 'Never executes external publishing, messaging, or financial mutations without Dee’s approval.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: HOLDING ORG CHART (Live Agents Grouped by Business Unit) -->
+        <div v-if="activeView === 'org'" class="panel-page">
+          <div class="panel-container">
+            <div class="task-section">
+              <div style="font-size:16px; font-weight:800;">Dee Holding • Live Agent Org Chart</div>
+              <p style="font-size:11.5px; color:#475569; margin:4px 0 0 0;">
+                Tap any live specialist below to inspect their 1. MISSION, 2. TOOLS, and 3. THE RULE.
+              </p>
+            </div>
+
+            <div v-if="totalAgentCount === 0" class="task-section" style="text-align:center; padding:28px;">
+              <div style="font-size:13px; font-weight:700; color:#475569;">No live agents connected yet</div>
+              <p style="font-size:11px; color:#64748b; margin-top:4px;">
+                Run your ClipOrbit or Paystack pipeline—agents will appear here automatically on first webhook event.
+              </p>
+            </div>
+
+            <div v-for="rm in activeRooms" :key="rm.id" class="task-section">
+              <div class="sec-label" :style="{ color: rm.color }">
+                ● {{ rm.name }} ({{ rm.business }})
+              </div>
+              <div class="org-grid">
+                <div
+                  v-for="ag in roomAgentsList(rm.id)"
+                  :key="ag.id"
+                  class="org-agent-card"
+                  @click="selectAgent(ag.id)"
+                >
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:12.5px;">{{ ag.name }}</strong>
+                    <span class="status-dot-pill" :style="{ color: ag.color }">
+                      {{ ag.state }} • {{ ag.progress }}%
+                    </span>
+                  </div>
+                  <div style="font-size:10.5px; color:#475569; margin-top:2px;">{{ ag.role }}</div>
+                  <div style="font-size:10px; color:#64748b; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {{ ag.task || 'Standby' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: TASK BOARD -->
         <div v-if="activeView === 'tasks'" class="panel-page">
           <div class="panel-container">
             <div class="task-section">
-              <div class="sec-label" style="color:#f59e0b">● Waiting For Your Approval ({{ waitingTasks.length }})</div>
+              <div class="sec-label" style="color:#d97706">● Waiting For Your Approval ({{ waitingTasks.length }})</div>
+              <div v-if="waitingTasks.length === 0" class="empty-hint">No pending approvals right now.</div>
               <div v-for="t in waitingTasks" :key="t.id" class="task-card">
                 <div>
                   <div style="font-size: 12px; font-weight: 700;">{{ t.title }}</div>
-                  <div style="font-size: 10px; color: #94a3b8;">{{ t.room.toUpperCase() }} • {{ t.agent }}</div>
+                  <div style="font-size: 10px; color: #475569;">{{ t.room.toUpperCase() }} • {{ t.agent }}</div>
                 </div>
                 <button class="approve-btn" @click="approveTask(t.id)">{{ t.action || 'Approve' }}</button>
               </div>
             </div>
 
             <div class="task-section">
-              <div class="sec-label" style="color:#38bdf8">● Running Now ({{ runningTasks.length }})</div>
+              <div class="sec-label" style="color:#2563eb">● Running Now ({{ runningTasks.length }})</div>
+              <div v-if="runningTasks.length === 0" class="empty-hint">No active tasks running.</div>
               <div v-for="t in runningTasks" :key="t.id" class="task-card">
                 <div style="flex:1">
                   <div style="font-size: 12px; font-weight: 700;">{{ t.title }}</div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-bottom: 5px;">
+                  <div style="font-size: 10px; color: #475569; margin-bottom: 5px;">
                     {{ t.room.toUpperCase() }} • {{ t.agent }} ({{ t.progress }}%)
                   </div>
                   <div class="skill-bar">
-                    <div class="skill-fill" :style="{ width: t.progress + '%', backgroundColor: '#38bdf8' }"></div>
+                    <div class="skill-fill" :style="{ width: t.progress + '%', backgroundColor: '#2563eb' }"></div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="task-section">
-              <div class="sec-label" style="color:#4ade80">● Done Today ({{ doneTasks.length }})</div>
+              <div class="sec-label" style="color:#16a34a">● Done Today ({{ doneTasks.length }})</div>
+              <div v-if="doneTasks.length === 0" class="empty-hint">No tasks completed yet today.</div>
               <div v-for="t in doneTasks" :key="t.id" class="task-card">
                 <div>
-                  <div style="font-size: 12px; font-weight: 600; color: #cbd5e1;">{{ t.title }}</div>
+                  <div style="font-size: 12px; font-weight: 600;">{{ t.title }}</div>
                   <div style="font-size: 10px; color: #64748b;">{{ t.agent }} • {{ t.time }}</div>
                 </div>
-                <span style="font-size: 10px; color: #4ade80; font-weight: 700;">✓ DONE</span>
+                <span style="font-size: 10px; color: #16a34a; font-weight: 700;">✓ DONE</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- TAB 3: THE BRAIN -->
+        <!-- VIEW 4: THE BRAIN -->
         <div v-if="activeView === 'brain'" class="panel-page">
           <div class="panel-container">
-            <div class="task-section" style="border-color: rgba(56, 189, 248, 0.35);">
-              <div style="font-size: 16px; font-weight: 800; color: #38bdf8;">
+            <div class="task-section">
+              <div style="font-size: 16px; font-weight: 800; color: #0284c7;">
                 THE BRAIN • {{ brain.notes_count.toLocaleString() }} Shared Memory Notes
               </div>
-              <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0 0;">
-                Central knowledge graph shared in real time across ClipOrbit, Paystack B2B, Dev, Research, and Outreach.
+              <p style="font-size: 11px; color: #475569; margin: 4px 0 0 0;">
+                Live knowledge graph populated automatically as your agents complete tasks across all businesses.
               </p>
             </div>
 
             <div class="task-section">
-              <div class="sec-label">Latest Learned Context & Rules</div>
+              <div class="sec-label">Live Learned Context & Execution Log</div>
+              <div v-if="brain.recent_memories.length === 0" class="empty-hint">
+                No live memories recorded yet.
+              </div>
               <div v-for="mem in brain.recent_memories" :key="mem.id" class="task-card">
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #a78bfa;">{{ mem.source }}</div>
-                  <div style="font-size: 12px; color: #f1f5f9; margin-top: 2px;">{{ mem.text }}</div>
+                  <div style="font-size: 10px; font-weight: 700; color: #2563eb;">{{ mem.source }}</div>
+                  <div style="font-size: 12px; margin-top: 2px;">{{ mem.text }}</div>
                 </div>
               </div>
             </div>
@@ -220,7 +343,7 @@
           <input
             v-model="commandInput"
             class="cmd-input"
-            placeholder="Dispatch agents (e.g. Grab 3 clips & edit in parallel)..."
+            placeholder="Dispatch parallel agents to selected studio..."
             @keyup.enter="sendCommand"
           />
           <button class="cmd-send" @click="sendCommand">Dispatch</button>

@@ -8,9 +8,10 @@ createApp({
     const activeView = ref('office');
     const rooms = ref({});
     const agents = ref({});
-    const brain = ref({ notes_count: 1842, recent_memories: [] });
+    const brain = ref({ notes_count: 0, recent_memories: [] });
     const tasks = ref([]);
     const selectedRoomId = ref(null);
+    const selectedAgentId = ref(null);
     const commandRoom = ref('cliporbit');
     const commandInput = ref('');
     const roomTags = ref([]);
@@ -27,16 +28,30 @@ createApp({
     const selectedRoom = computed(() =>
       selectedRoomId.value ? rooms.value[selectedRoomId.value] : null
     );
+    const selectedAgent = computed(() =>
+      selectedAgentId.value ? agents.value[selectedAgentId.value] : null
+    );
+
     const totalAgentCount = computed(() => Object.keys(agents.value).length);
     const runningAgentCount = computed(() =>
       Object.values(agents.value).filter((a) => a.state === 'working').length
     );
-    const runningTasks = computed(() => tasks.value.filter((t) => t.status === 'running'));
-    const waitingTasks = computed(() => tasks.value.filter((t) => t.status === 'waiting'));
-    const doneTasks = computed(() => tasks.value.filter((t) => t.status === 'done'));
+
+    const activeRooms = computed(() =>
+      Object.values(rooms.value).filter((rm) =>
+        Object.values(agents.value).some((a) => a.room === rm.id)
+      )
+    );
+
+    const roomAgentsList = (roomId) =>
+      Object.values(agents.value).filter((a) => a.room === roomId);
 
     const roomRunningCount = (roomId) =>
       Object.values(agents.value).filter((a) => a.room === roomId && a.state === 'working').length;
+
+    const runningTasks = computed(() => tasks.value.filter((t) => t.status === 'running'));
+    const waitingTasks = computed(() => tasks.value.filter((t) => t.status === 'waiting'));
+    const doneTasks = computed(() => tasks.value.filter((t) => t.status === 'done'));
 
     const resolveMood = () => {
       if (lightingMode.value !== 'auto') return lightingMode.value;
@@ -95,14 +110,25 @@ createApp({
     const onTouchEnd = () => { isDragging = false; initialPinchDist = null; };
 
     const selectRoom = (roomId) => {
+      selectedAgentId.value = null;
       selectedRoomId.value = roomId;
       commandRoom.value = roomId;
       if (office3d) office3d.cameraRadius = 15.5;
     };
 
-    const clearRoomFocus = () => {
+    const selectAgent = (agentId) => {
+      selectedAgentId.value = agentId;
+      const ag = agents.value[agentId];
+      if (ag && ag.room) {
+        selectedRoomId.value = ag.room;
+        if (office3d) office3d.cameraRadius = 14.5;
+      }
+    };
+
+    const clearFocus = () => {
       selectedRoomId.value = null;
-      if (office3d) office3d.cameraRadius = 29;
+      selectedAgentId.value = null;
+      if (office3d) office3d.cameraRadius = 31;
     };
 
     const animate = () => {
@@ -197,10 +223,11 @@ createApp({
 
     return {
       canvasContainer, activeView, rooms, agents, brain, tasks,
-      selectedRoomId, selectedRoom, commandRoom, commandInput,
-      roomTags, agentPills, lightingLabel, totalAgentCount, runningAgentCount,
-      runningTasks, waitingTasks, doneTasks, roomRunningCount,
-      cycleLighting, selectRoom, clearRoomFocus, sendCommand,
+      selectedRoomId, selectedRoom, selectedAgentId, selectedAgent,
+      commandRoom, commandInput, roomTags, agentPills, lightingLabel,
+      totalAgentCount, runningAgentCount, activeRooms,
+      runningTasks, waitingTasks, doneTasks, roomAgentsList, roomRunningCount,
+      cycleLighting, selectRoom, selectAgent, clearFocus, sendCommand,
       spawnParallelSubagents, approveTask,
       onPointerDown, onPointerMove, onPointerUp, onWheel,
       onTouchStart, onTouchMove, onTouchEnd
