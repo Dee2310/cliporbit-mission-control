@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Agent HQ // Universal Command Center</title>
+    <link rel="manifest" href="/static/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Agent HQ" />
     <link rel="stylesheet" href="/static/style.css" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -34,6 +38,7 @@
           </nav>
 
           <div class="hq-status">
+            <button class="cycle-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN SET' : '🔓 SET PIN' }}</button>
             <button class="cycle-btn" @click="cycleLighting">{{ lightingLabel }}</button>
             <div class="agent-counter">● {{ totalAgentCount }} live • {{ runningAgentCount }} active</div>
           </div>
@@ -169,7 +174,9 @@
                   {{ selectedAgent.business || 'Agent HQ' }}
                 </span>
                 <h2 class="job-agent-name">{{ selectedAgent.name }}</h2>
-                <div class="job-agent-role">{{ selectedAgent.role }} • {{ selectedAgent.state.toUpperCase() }} ({{ selectedAgent.progress }}%)</div>
+                <div class="job-agent-role">
+                  {{ selectedAgent.role }} • {{ selectedAgent.state.toUpperCase() }} ({{ selectedAgent.progress }}%)
+                </div>
               </div>
               <button class="close-btn" @click="selectedAgentId = null">✕</button>
             </div>
@@ -223,10 +230,15 @@
         <div v-if="activeView === 'org'" class="panel-page">
           <div class="panel-container">
             <div class="task-section">
-              <div style="font-size:16px; font-weight:800;">Dee Holding • Live Agent Org Chart</div>
-              <p style="font-size:11.5px; color:#475569; margin:4px 0 0 0;">
-                Tap any live specialist below to inspect their 1. MISSION, 2. TOOLS, and 3. THE RULE.
-              </p>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:16px; font-weight:800;">Dee Holding • Live Agent Org Chart</div>
+                  <p style="font-size:11.5px; color:#475569; margin:4px 0 0 0;">
+                    Tap any live specialist below to inspect their 1. MISSION, 2. TOOLS, and 3. THE RULE.
+                  </p>
+                </div>
+                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Active' : '🔓 Set PIN' }}</button>
+              </div>
             </div>
 
             <div v-if="totalAgentCount === 0" class="task-section" style="text-align:center; padding:28px;">
@@ -267,7 +279,12 @@
         <div v-if="activeView === 'tasks'" class="panel-page">
           <div class="panel-container">
             <div class="task-section">
-              <div class="sec-label" style="color:#d97706">● Waiting For Your Approval ({{ waitingTasks.length }})</div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="sec-label" style="color:#d97706; margin:0;">
+                  ● Waiting For Your Approval ({{ waitingTasks.length }})
+                </div>
+                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Active' : '🔓 Set PIN' }}</button>
+              </div>
               <div v-if="waitingTasks.length === 0" class="empty-hint">No pending approvals right now.</div>
               <div v-for="t in waitingTasks" :key="t.id" class="task-card">
                 <div>
@@ -343,7 +360,7 @@
           <input
             v-model="commandInput"
             class="cmd-input"
-            placeholder="Dispatch parallel agents to selected studio..."
+            placeholder="Dispatch workflow to selected studio..."
             @keyup.enter="sendCommand"
           />
           <button class="cmd-send" @click="sendCommand">Dispatch</button>

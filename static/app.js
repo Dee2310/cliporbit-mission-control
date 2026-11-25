@@ -17,6 +17,7 @@ createApp({
     const roomTags = ref([]);
     const agentPills = ref([]);
     const lightingMode = ref('auto');
+    const hqPin = ref(localStorage.getItem('agent_hq_pin') || '');
 
     let office3d = null;
     let animationFrameId = null;
@@ -24,6 +25,19 @@ createApp({
     let isDragging = false;
     let prevX = 0;
     let initialPinchDist = null;
+
+    const promptForPin = () => {
+      const entered = window.prompt('Enter your Agent HQ Security PIN:', hqPin.value);
+      if (entered !== null) {
+        hqPin.value = entered.trim();
+        localStorage.setItem('agent_hq_pin', hqPin.value);
+      }
+    };
+
+    const authHeaders = () => ({
+      'Content-Type': 'application/json',
+      'X-HQ-PIN': hqPin.value
+    });
 
     const selectedRoom = computed(() =>
       selectedRoomId.value ? rooms.value[selectedRoomId.value] : null
@@ -143,29 +157,39 @@ createApp({
     const sendCommand = async () => {
       const text = commandInput.value.trim();
       if (!text) return;
-      commandInput.value = '';
-      await fetch('/api/command', {
+      const resp = await fetch('/api/command', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ prompt: text, room: commandRoom.value })
       });
+      if (resp.status === 403) {
+        promptForPin();
+        return;
+      }
+      commandInput.value = '';
       selectRoom(commandRoom.value);
     };
 
     const spawnParallelSubagents = async (roomId) => {
-      await fetch('/api/command', {
+      const resp = await fetch('/api/command', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ prompt: 'Parallel batch execution', room: roomId })
       });
+      if (resp.status === 403) {
+        promptForPin();
+      }
     };
 
     const approveTask = async (taskId) => {
-      await fetch('/api/tasks/approve', {
+      const resp = await fetch('/api/tasks/approve', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ task_id: taskId })
       });
+      if (resp.status === 403) {
+        promptForPin();
+      }
     };
 
     const connectWebSocket = () => {
@@ -225,6 +249,7 @@ createApp({
       canvasContainer, activeView, rooms, agents, brain, tasks,
       selectedRoomId, selectedRoom, selectedAgentId, selectedAgent,
       commandRoom, commandInput, roomTags, agentPills, lightingLabel,
+      hqPin, promptForPin,
       totalAgentCount, runningAgentCount, activeRooms,
       runningTasks, waitingTasks, doneTasks, roomAgentsList, roomRunningCount,
       cycleLighting, selectRoom, selectAgent, clearFocus, sendCommand,
