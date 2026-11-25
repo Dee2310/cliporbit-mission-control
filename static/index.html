@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Agent HQ // Universal Command Center</title>
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,6 +15,14 @@
   <body>
     <div id="app">
       <div class="hq-shell">
+        <!-- FLOATING LIVE TOAST BANNER -->
+        <transition name="toast-slide">
+          <div v-if="toast.visible" class="hq-toast" :class="toast.type">
+            <span>{{ toast.icon }}</span>
+            <span>{{ toast.text }}</span>
+          </div>
+        </transition>
+
         <!-- TOP HEADER BAR -->
         <header class="hq-topbar">
           <div class="hq-brand">
@@ -38,9 +46,11 @@
           </nav>
 
           <div class="hq-status">
-            <button class="cycle-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN SET' : '🔓 SET PIN' }}</button>
+            <button class="pin-btn" :class="{ unlocked: !!hqPin }" @click="promptForPin" title="Set HQ PIN">
+              {{ hqPin ? '🔒' : '🔓' }}
+            </button>
             <button class="cycle-btn" @click="cycleLighting">{{ lightingLabel }}</button>
-            <div class="agent-counter">● {{ totalAgentCount }} live • {{ runningAgentCount }} active</div>
+            <div class="agent-counter">● {{ totalAgentCount }} live</div>
           </div>
         </header>
 
@@ -69,10 +79,10 @@
             <div class="room-tag-top">
               <span :style="{ color: tag.color }">●</span> {{ tag.name }}
             </div>
-            <div class="room-tag-sub">{{ tag.agentCount }} agents • {{ tag.runningCount }} running</div>
+            <div class="room-tag-sub">{{ tag.agentCount }} agents • {{ tag.runningCount }} active</div>
           </div>
 
-          <!-- Interactive Floating Specialist Pills (Tap to open Job Card) -->
+          <!-- Interactive Floating Specialist Pills -->
           <div
             v-for="pill in agentPills"
             :key="pill.id"
@@ -83,16 +93,17 @@
             {{ pill.name }}
           </div>
 
-          <!-- Left Team Inspector Drawer -->
+          <!-- Studio Inspector Sheet -->
           <aside v-if="selectedRoom && !selectedAgent" class="team-drawer">
+            <div class="sheet-handle"></div>
             <div class="drawer-head">
               <div>
                 <h3 class="drawer-title" :style="{ color: selectedRoom.color }">{{ selectedRoom.name }}</h3>
-                <div style="font-size: 10px; color: #475569;">
+                <div style="font-size: 10.5px; color: #475569;">
                   {{ selectedRoom.business }} • Lead: {{ selectedRoom.lead }}
                 </div>
               </div>
-              <button class="close-btn" @click="clearFocus">Overview</button>
+              <button class="close-btn" @click="clearFocus">Close</button>
             </div>
 
             <div class="kpi-strip">
@@ -110,9 +121,8 @@
               </div>
             </div>
 
-            <!-- Live Agents inside this Department -->
             <div>
-              <div class="sec-label">Active Specialists (Tap for Job Card)</div>
+              <div class="sec-label">Specialists in Studio (Tap for Job Card)</div>
               <div v-if="roomAgentsList(selectedRoom.id).length === 0" class="empty-hint">
                 No agents checked into this studio yet.
               </div>
@@ -122,11 +132,11 @@
                 class="agent-mini-card"
                 @click="selectAgent(ag.id)"
               >
-                <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
                   <span :style="{ color: ag.color }">{{ ag.name }}</span>
                   <span style="font-size:10px; color:#475569;">{{ ag.state.toUpperCase() }}</span>
                 </div>
-                <div style="font-size:10px; color:#64748b; margin-top:2px;">{{ ag.task || 'Standby' }}</div>
+                <div style="font-size:10.5px; color:#64748b; margin-top:2px;">{{ ag.task || 'Standby' }}</div>
               </div>
             </div>
 
@@ -140,8 +150,8 @@
               </div>
             </div>
 
-            <button class="spawn-btn" @click="spawnParallelSubagents(selectedRoom.id)">
-              ⚡ Spawn 3 Parallel Sub-Agents
+            <button class="spawn-btn" :disabled="isDispatching" @click="spawnParallelSubagents(selectedRoom.id)">
+              ⚡ {{ isDispatching ? 'Dispatching...' : 'Spawn 3 Parallel Sub-Agents' }}
             </button>
           </aside>
 
@@ -165,7 +175,7 @@
           </div>
         </div>
 
-        <!-- INTERACTIVE AGENT JOB CARD MODAL / DRAWER -->
+        <!-- INTERACTIVE AGENT JOB CARD MODAL -->
         <div v-if="selectedAgent" class="job-modal-backdrop" @click.self="selectedAgentId = null">
           <div class="job-card">
             <div class="job-card-header" :style="{ borderColor: selectedAgent.color }">
@@ -181,10 +191,9 @@
               <button class="close-btn" @click="selectedAgentId = null">✕</button>
             </div>
 
-            <!-- Live Progress Bar -->
             <div class="job-live-status">
-              <div style="display:flex; justify-content:space-between; font-size:10.5px; font-weight:600; margin-bottom:4px;">
-                <span>Current Task: {{ selectedAgent.task || 'Awaiting dispatch' }}</span>
+              <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-bottom:5px;">
+                <span>Task: {{ selectedAgent.task || 'Awaiting dispatch' }}</span>
                 <span>{{ selectedAgent.progress }}%</span>
               </div>
               <div class="skill-bar">
@@ -195,7 +204,6 @@
               </div>
             </div>
 
-            <!-- 1. MISSION -->
             <div class="job-section">
               <div class="job-sec-title">1. MISSION</div>
               <p class="job-sec-body">
@@ -203,7 +211,6 @@
               </p>
             </div>
 
-            <!-- 2. TOOLS -->
             <div class="job-section">
               <div class="job-sec-title">2. TOOLS & PERMISSIONS</div>
               <div v-if="selectedAgent.tools && selectedAgent.tools.length" class="job-tools-wrap">
@@ -216,35 +223,38 @@
               </p>
             </div>
 
-            <!-- 3. THE RULE -->
             <div class="job-rule-box">
               <div class="job-rule-title">3. THE RULE (HARD GUARDRAIL)</div>
               <p class="job-rule-body">
                 {{ selectedAgent.rule || 'Never executes external publishing, messaging, or financial mutations without Dee’s approval.' }}
               </p>
             </div>
+
+            <button class="spawn-btn" @click="focusCommandOnAgent(selectedAgent)">
+              💬 Send Direct Order to {{ selectedAgent.name }}
+            </button>
           </div>
         </div>
 
-        <!-- VIEW 2: HOLDING ORG CHART (Live Agents Grouped by Business Unit) -->
+        <!-- VIEW 2: HOLDING ORG CHART -->
         <div v-if="activeView === 'org'" class="panel-page">
           <div class="panel-container">
             <div class="task-section">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <div style="font-size:16px; font-weight:800;">Dee Holding • Live Agent Org Chart</div>
+                  <div style="font-size:16px; font-weight:800;">Dee Holding • Live Org Chart</div>
                   <p style="font-size:11.5px; color:#475569; margin:4px 0 0 0;">
-                    Tap any live specialist below to inspect their 1. MISSION, 2. TOOLS, and 3. THE RULE.
+                    Tap any specialist to view their Job Card or send them a direct command.
                   </p>
                 </div>
-                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Active' : '🔓 Set PIN' }}</button>
+                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Set' : '🔓 Set PIN' }}</button>
               </div>
             </div>
 
             <div v-if="totalAgentCount === 0" class="task-section" style="text-align:center; padding:28px;">
               <div style="font-size:13px; font-weight:700; color:#475569;">No live agents connected yet</div>
               <p style="font-size:11px; color:#64748b; margin-top:4px;">
-                Run your ClipOrbit or Paystack pipeline—agents will appear here automatically on first webhook event.
+                Use the command bar below to dispatch your first task or run a workflow.
               </p>
             </div>
 
@@ -283,13 +293,13 @@
                 <div class="sec-label" style="color:#d97706; margin:0;">
                   ● Waiting For Your Approval ({{ waitingTasks.length }})
                 </div>
-                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Active' : '🔓 Set PIN' }}</button>
+                <button class="close-btn" @click="promptForPin">{{ hqPin ? '🔒 PIN Set' : '🔓 Set PIN' }}</button>
               </div>
               <div v-if="waitingTasks.length === 0" class="empty-hint">No pending approvals right now.</div>
               <div v-for="t in waitingTasks" :key="t.id" class="task-card">
                 <div>
-                  <div style="font-size: 12px; font-weight: 700;">{{ t.title }}</div>
-                  <div style="font-size: 10px; color: #475569;">{{ t.room.toUpperCase() }} • {{ t.agent }}</div>
+                  <div style="font-size: 12.5px; font-weight: 700;">{{ t.title }}</div>
+                  <div style="font-size: 10.5px; color: #475569;">{{ t.room.toUpperCase() }} • {{ t.agent }}</div>
                 </div>
                 <button class="approve-btn" @click="approveTask(t.id)">{{ t.action || 'Approve' }}</button>
               </div>
@@ -300,8 +310,8 @@
               <div v-if="runningTasks.length === 0" class="empty-hint">No active tasks running.</div>
               <div v-for="t in runningTasks" :key="t.id" class="task-card">
                 <div style="flex:1">
-                  <div style="font-size: 12px; font-weight: 700;">{{ t.title }}</div>
-                  <div style="font-size: 10px; color: #475569; margin-bottom: 5px;">
+                  <div style="font-size: 12.5px; font-weight: 700;">{{ t.title }}</div>
+                  <div style="font-size: 10.5px; color: #475569; margin-bottom: 5px;">
                     {{ t.room.toUpperCase() }} • {{ t.agent }} ({{ t.progress }}%)
                   </div>
                   <div class="skill-bar">
@@ -333,12 +343,12 @@
                 THE BRAIN • {{ brain.notes_count.toLocaleString() }} Shared Memory Notes
               </div>
               <p style="font-size: 11px; color: #475569; margin: 4px 0 0 0;">
-                Live knowledge graph populated automatically as your agents complete tasks across all businesses.
+                Live knowledge graph populated automatically as your agents execute orders.
               </p>
             </div>
 
             <div class="task-section">
-              <div class="sec-label">Live Learned Context & Execution Log</div>
+              <div class="sec-label">Live Execution & Memory Log</div>
               <div v-if="brain.recent_memories.length === 0" class="empty-hint">
                 No live memories recorded yet.
               </div>
@@ -352,18 +362,28 @@
           </div>
         </div>
 
-        <!-- BOTTOM COMMAND BAR -->
+        <!-- BOTTOM COMMAND BAR (SUPPORTS @AGENT & @STUDIO + SAFE-AREA) -->
         <div class="command-dock">
-          <select v-model="commandRoom" class="cmd-select">
-            <option v-for="rm in rooms" :key="rm.id" :value="rm.id">{{ rm.name }}</option>
+          <select v-model="commandTarget" class="cmd-select">
+            <optgroup label="Studios">
+              <option v-for="rm in rooms" :key="rm.id" :value="rm.id">{{ rm.name }}</option>
+            </optgroup>
+            <optgroup v-if="totalAgentCount > 0" label="Direct Agents">
+              <option v-for="ag in Object.values(agents)" :key="ag.id" :value="'agent:' + ag.id">
+                @{{ ag.name }}
+              </option>
+            </optgroup>
           </select>
           <input
+            ref="cmdInputRef"
             v-model="commandInput"
             class="cmd-input"
-            placeholder="Dispatch workflow to selected studio..."
+            placeholder="Tell your agents what to do..."
             @keyup.enter="sendCommand"
           />
-          <button class="cmd-send" @click="sendCommand">Dispatch</button>
+          <button class="cmd-send" :disabled="isDispatching" @click="sendCommand">
+            {{ isDispatching ? '...' : 'Dispatch' }}
+          </button>
         </div>
       </div>
     </div>

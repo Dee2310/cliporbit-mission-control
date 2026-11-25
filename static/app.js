@@ -5,6 +5,7 @@ const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 createApp({
   setup() {
     const canvasContainer = ref(null);
+    const cmdInputRef = ref(null);
     const activeView = ref('office');
     const rooms = ref({});
     const agents = ref({});
@@ -12,12 +13,14 @@ createApp({
     const tasks = ref([]);
     const selectedRoomId = ref(null);
     const selectedAgentId = ref(null);
-    const commandRoom = ref('cliporbit');
+    const commandTarget = ref('cliporbit');
     const commandInput = ref('');
     const roomTags = ref([]);
     const agentPills = ref([]);
     const lightingMode = ref('auto');
     const hqPin = ref(localStorage.getItem('agent_hq_pin') || '');
+    const isDispatching = ref(false);
+    const toast = ref({ visible: false, text: '', type: 'info', icon: '⚡' });
 
     let office3d = null;
     let animationFrameId = null;
@@ -25,13 +28,25 @@ createApp({
     let isDragging = false;
     let prevX = 0;
     let initialPinchDist = null;
+    let toastTimer = null;
+
+    const showToast = (text, type = 'success', icon = '⚡') => {
+      toast.value = { visible: true, text, type, icon };
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.value.visible = false;
+      }, 4000);
+    };
 
     const promptForPin = () => {
-      const entered = window.prompt('Enter your Agent HQ Security PIN:', hqPin.value);
-      if (entered !== null) {
+      const entered = window.prompt('Enter your Agent HQ 4-digit PIN:', hqPin.value);
+      if (entered !== null && entered.trim()) {
         hqPin.value = entered.trim();
         localStorage.setItem('agent_hq_pin', hqPin.value);
+        showToast('PIN saved on this device', 'success', '🔒');
+        return true;
       }
+      return false;
     };
 
     const authHeaders = () => ({
@@ -126,7 +141,7 @@ createApp({
     const selectRoom = (roomId) => {
       selectedAgentId.value = null;
       selectedRoomId.value = roomId;
-      commandRoom.value = roomId;
+      commandTarget.value = roomId;
       if (office3d) office3d.cameraRadius = 15.5;
     };
 
@@ -137,6 +152,15 @@ createApp({
         selectedRoomId.value = ag.room;
         if (office3d) office3d.cameraRadius = 14.5;
       }
+    };
+
+    const focusCommandOnAgent = (ag) => {
+      selectedAgentId.value = null;
+      activeView.value = 'office';
+      commandTarget.value = `agent:${ag.id}`;
+      setTimeout(() => {
+        if (cmdInputRef.value) cmdInputRef.value.focus();
+      }, 100);
     };
 
     const clearFocus = () => {
@@ -156,39 +180,95 @@ createApp({
 
     const sendCommand = async () => {
       const text = commandInput.value.trim();
-      if (!text) return;
-      const resp = await fetch('/api/command', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ prompt: text, room: commandRoom.value })
-      });
-      if (resp.status === 403) {
-        promptForPin();
+      if (!text) {
+        showToast('Type an instruction for your agents first', 'error', '✍️');
         return;
       }
-      commandInput.value = '';
-      selectRoom(commandRoom.value);
+
+      isDispatching.value = true;
+      try {
+        let resp = await fetch('/api/command', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ prompt: text, room: commandTarget.value })
+        });
+
+        if (resp.status === 403) {
+          const ok = promptForPin();
+          if (!ok) {
+            showToast('PIN required to dispatch commands', 'error', '🔒');
+            return;
+          }
+          resp = await fetch('/api/command', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ prompt: text, room: commandTarget.value })
+          });
+        }
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          showToast(data.error || 'Dispatch failed', 'error', '⚠️');
+          return;
+        }
+
+        commandInput.value = '';
+        showToast(data.message || 'Command dispatched!', data.triggered ? 'success' : 'info', '🚀');
+
+        if (!commandTarget.value.startsWith('agent:')) {
+          selectRoom(commandTarget.value);
+        }
+      } catch {
+        showToast('Network error reaching Agent HQ', 'error', '📡');
+      } finally {
+        isDispatching.value = false;
+      }
     };
 
     const spawnParallelSubagents = async (roomId) => {
-      const resp = await fetch('/api/command', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ prompt: 'Parallel batch execution', room: roomId })
-      });
-      if (resp.status === 403) {
-        promptForPin();
+      isDispatching.value = true;
+      try {
+        let resp = await fetch('/api/command', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ prompt: 'Parallel batch execution', room: roomId })
+        });
+        if (resp.status === 403 && promptForPin()) {
+          resp = await fetch('/api/command', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ prompt: 'Parallel batch execution', room: roomId })
+          });
+        }
+        const data = await resp.json();
+        if (resp.ok) {
+          showToast(data.message || 'Spawned 3 sub-agents', 'success', '⚡');
+        } else {
+          showToast(data.error || 'Unable to spawn', 'error', '🔒');
+        }
+      } finally {
+        isDispatching.value = false;
       }
     };
 
     const approveTask = async (taskId) => {
-      const resp = await fetch('/api/tasks/approve', {
+      let resp = await fetch('/api/tasks/approve', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ task_id: taskId })
       });
-      if (resp.status === 403) {
-        promptForPin();
+      if (resp.status === 403 && promptForPin()) {
+        resp = await fetch('/api/tasks/approve', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ task_id: taskId })
+        });
+      }
+      const data = await resp.json();
+      if (resp.ok) {
+        showToast(data.detail || 'Approved & dispatched!', 'success', '✅');
+      } else {
+        showToast(data.error || 'Approval failed', 'error', '🔒');
       }
     };
 
@@ -246,14 +326,14 @@ createApp({
     });
 
     return {
-      canvasContainer, activeView, rooms, agents, brain, tasks,
+      canvasContainer, cmdInputRef, activeView, rooms, agents, brain, tasks,
       selectedRoomId, selectedRoom, selectedAgentId, selectedAgent,
-      commandRoom, commandInput, roomTags, agentPills, lightingLabel,
-      hqPin, promptForPin,
+      commandTarget, commandInput, roomTags, agentPills, lightingLabel,
+      hqPin, promptForPin, isDispatching, toast,
       totalAgentCount, runningAgentCount, activeRooms,
       runningTasks, waitingTasks, doneTasks, roomAgentsList, roomRunningCount,
-      cycleLighting, selectRoom, selectAgent, clearFocus, sendCommand,
-      spawnParallelSubagents, approveTask,
+      cycleLighting, selectRoom, selectAgent, focusCommandOnAgent, clearFocus,
+      sendCommand, spawnParallelSubagents, approveTask,
       onPointerDown, onPointerMove, onPointerUp, onWheel,
       onTouchStart, onTouchMove, onTouchEnd
     };

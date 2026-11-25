@@ -699,3 +699,90 @@ body {
   font-weight: 700;
   text-transform: uppercase;
 }
+
+/* FLOATING LIVE TOAST BANNER */
+.hq-toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 12px) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  z-index: 100;
+  max-width: 92vw;
+}
+
+.hq-toast.success { border: 1px solid #22c55e; }
+.hq-toast.error { background: #991b1b; border: 1px solid #f87171; }
+.hq-toast.info { border: 1px solid #38bdf8; }
+
+.toast-slide-enter-active, .toast-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.toast-slide-enter-from, .toast-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -12px);
+}
+
+.pin-btn {
+  background: #f1f5f9;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pin-btn.unlocked {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.sheet-handle {
+  display: none;
+}
+
+/* IPHONE SAFE-AREA & ERGONOMIC UPGRADES */
+.hq-topbar {
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+
+.command-dock {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  height: 54px;
+}
+
+.cmd-send:disabled, .spawn-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .sheet-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 4px;
+    margin: -4px auto 4px auto;
+  }
+
+  .team-drawer {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    border-radius: 22px;
+    box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.16);
+  }
+
+  .panel-page {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 70px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+  }
+}

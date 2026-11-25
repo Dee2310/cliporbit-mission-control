@@ -137,7 +137,10 @@ async def webhook_handler(request):
 
 async def command_handler(request):
   if not verify_pin(request):
-    return web.json_response({"error": "Invalid HQ PIN"}, status=403)
+    return web.json_response(
+        {"error": "Invalid HQ PIN — tap the lock icon to enter your PIN."},
+        status=403,
+    )
 
   try:
     data = await request.json()
@@ -145,28 +148,82 @@ async def command_handler(request):
     return web.json_response({"error": "Invalid JSON"}, status=400)
 
   prompt = data.get("prompt", "").strip()
-  room_id = data.get("room", "cliporbit")
-  spawn_payload = spawn_subagents(room_id, prompt)
+  target = data.get("room", "cliporbit")  # Can be a room_id or "agent:<id>"
+  if not prompt:
+    return web.json_response({"error": "Enter a command first."}, status=400)
 
-  # Route real GitHub Actions workflow if mapped
+  # Check if user targeted a specific live agent (e.g. "agent:hunter_agent")
+  target_agent = None
+  if target.startswith("agent:"):
+    ag_id = target.split(":", 1)[1]
+    target_agent = AGENTS.get(ag_id)
+    room_id = target_agent["room"] if target_agent else "cliporbit"
+  else:
+    room_id = target if target in ROOMS else "cliporbit"
+
+  if target_agent:
+    target_agent["state"] = "working"
+    target_agent["progress"] = 5
+    target_agent["task"] = prompt
+    TASKS.insert(
+        0,
+        {
+            "id": f"tsk_{int(time.time() * 1000) % 100000}",
+            "title": prompt,
+            "room": room_id,
+            "agent": target_agent["name"],
+            "status": "running",
+            "progress": 5,
+        },
+    )
+    spawn_payload = {
+        "type": "AGENT_UPDATE",
+        "agent": target_agent,
+        "room": ROOMS[room_id],
+        "tasks": TASKS[:25],
+        "brain": BRAIN_STATE,
+    }
+    actor_label = target_agent["name"]
+  else:
+    spawn_payload = spawn_subagents(room_id, prompt)
+    actor_label = ROOMS[room_id]["name"]
+
+  # Trigger real GitHub Actions repository_dispatch
   route = DEPARTMENT_DISPATCH.get(room_id)
-  dispatch_note = ""
+  dispatch_note = "Queued locally"
+  triggered = False
   if route:
     repo = os.environ.get(route["repo_env"], route["default_repo"])
-    ok, detail = await trigger_github_dispatch(
-        repo, route["event"], {"prompt": prompt, "room": room_id}
+    triggered, detail = await trigger_github_dispatch(
+        repo,
+        route["event"],
+        {
+            "prompt": prompt,
+            "room": room_id,
+            "agent_id": target_agent["id"] if target_agent else "",
+        },
     )
     dispatch_note = detail
-    spawn_payload["message"] = f"{spawn_payload['message']} • {detail}"
+
+  BRAIN_STATE["notes_count"] += 1
+  BRAIN_STATE["recent_memories"].insert(
+      0,
+      {
+          "id": f"mem_{int(time.time() * 1000)}",
+          "source": actor_label,
+          "text": f"Dee Dispatched: '{prompt}' ({dispatch_note})",
+      },
+  )
 
   asyncio.create_task(
       save_state_snapshot(ROOMS, AGENTS, TASKS, BRAIN_STATE)
   )
   await broadcast(spawn_payload)
+
   return web.json_response({
-      "status": "spawned",
-      "count": len(spawn_payload["subagents"]),
-      "dispatch": dispatch_note,
+      "status": "ok",
+      "triggered": triggered,
+      "message": f"Sent to {actor_label}: {dispatch_note}",
   })
 
 
