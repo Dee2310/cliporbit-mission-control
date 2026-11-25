@@ -1,0 +1,13 @@
+name: Keep Agent HQ Awake
+
+on:
+  schedule:
+    - cron: "*/12 7-22 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Server
+        run: curl -s -m 60 https://cliporbit-mission-control.onrender.com/ > /dev/null || true
